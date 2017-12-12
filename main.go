@@ -1,31 +1,145 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
 
+	"./cert"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"golang.org/x/crypto/acme/autocert"
 )
 
+//WebConfig contains settings for webserver
+type WebConfig struct {
+	//HostName : hostname of  server
+	HostName string
+	//HTTPPort redirects from here
+	HTTPPort int
+	//HTTPSPort to here
+	HTTPSPort int
+}
+
+func initWebConfig(fileName string) WebConfig {
+	if len(fileName) < 0 {
+		fileName = "webConf.json"
+	}
+	conf := WebConfig{}
+	err := func(fileName string) error {
+		content, err := ioutil.ReadFile(fileName)
+		if err != nil {
+			return err
+		}
+		return json.Unmarshal(content, conf)
+	}(fileName)
+	if err != nil {
+		conf.HostName = "localhost"
+		conf.HTTPPort = 8080
+		conf.HTTPSPort = 8443
+		m, err := json.Marshal(conf)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = ioutil.WriteFile("webConf.json", m, 0777)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	return conf
+}
+func fileExist(filePath string) bool {
+	if _, err := os.Stat(filePath); err == nil {
+		return true
+	}
+	return false
+}
+
+func getHrefFiles(content string) []string {
+
+}
+
+var mimeTypes = map[string]string{
+	".js":   "text/javascript",
+	".css":  "text/css",
+	".html": "text/html",
+	"":      "text/html"}
+
+//MIME middleware sets type based on extension
+func MIME() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			p := filepath.Ext(c.Request().URL.Path)
+			typ := mimeTypes[p]
+			log.Println("MIME", typ, p)
+			c.Response().Header().Set(echo.HeaderContentType, typ)
+
+			return next(c)
+		}
+
+	}
+}
+
+var confFile = flag.String("c", "", "Path to config file")
+var appDir = flag.String("a", "", "Path to App dist")
+var bDir = flag.String("b", "", "Path to App dist")
+
 func main() {
+	flag.Parse()
+
+	conf := initWebConfig(*confFile)
 	e := echo.New()
-	e.Pre(middleware.HTTPSRedirect())
-	e.AutoTLSManager.HostPolicy = autocert.HostWhitelist("anachro.me")
-	// Cache certificates
-	e.AutoTLSManager.Prompt = autocert.AcceptTOS
-	e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")
+	e.Pre(middleware.RemoveTrailingSlash())
+	if conf.HostName == "localhost" {
+		if !fileExist("cert.pem") || !fileExist("key.pem") {
+			cert.GenerateCertFiles("localhost", 365*24*time.Hour, true)
+		}
+	} else {
+		e.Pre(middleware.HTTPSRedirect())
+		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist("anachro.me")
+		// Cache certificates
+		e.AutoTLSManager.Prompt = autocert.AcceptTOS
+		e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")
+	}
+	e.Use(middleware.BodyLimit("2M"))
+	e.Use(middleware.CSRF())
+	e.Use(middleware.Secure())
+	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+		Level: 5,
+	}))
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
-	e.GET("/", func(c echo.Context) error {
-		return c.HTML(http.StatusOK, `                                                               
-                        <h1>Welcome to Echo!</h1>                                                            
-                        <h3>TLS certificates automatically installed from Let's Encrypt :)</h3>              
-                `)
-	})
-	go func(c *echo.Echo) {
-		e.Logger.Fatal(e.Start(":80"))
-	}(e)
+	e.Use(MIME())
+	e.Static("/", "../anachrome-fe/dist")
+	e.GET("/", func(c echo.Context) (err error) {
+		pusher, ok := c.Response().Writer.(http.Pusher)
+		if ok {
 
-	e.Logger.Fatal(e.StartAutoTLS(":443"))
+			if err = pusher.Push("/styles.d41d8cd98f00b204e980.bundle.css", nil); err != nil {
+				return
+			}
+			if err = pusher.Push("/inline.43bdfccbf94fc813c9b1.bundle.js", nil); err != nil {
+				return
+			}
+			if err = pusher.Push("/polyfills.43a6a16e791d2caa0484.bundle.js", nil); err != nil {
+				return
+			}
+		}
+		return c.File("../anachrome-fe/dist/index.html")
+	})
+
+	if conf.HostName == "localhost" {
+		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), "cert.pem", "key.pem"))
+	} else {
+		go func(c *echo.Echo) {
+			e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.HTTPPort)))
+		}(e)
+		e.Logger.Fatal(e.StartAutoTLS(":" + strconv.Itoa(conf.HTTPSPort)))
+	}
 }
