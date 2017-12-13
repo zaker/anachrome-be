@@ -33,13 +33,13 @@ func GenerateCertFiles(host string, validFor time.Duration, isCA bool) {
 		log.Fatalf("Missing required --host parameter")
 	}
 
-	var priv *rsa.PrivateKey
-	var err error
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+
 	if err != nil {
 		log.Fatalf("failed to generate private key: %s", err)
 	}
 
-	notBefore := time.Now()
+	notBefore := time.Now().Add(-1 * time.Hour)
 
 	notAfter := notBefore.Add(validFor)
 
@@ -76,7 +76,7 @@ func GenerateCertFiles(host string, validFor time.Duration, isCA bool) {
 		template.KeyUsage |= x509.KeyUsageCertSign
 	}
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, priv.PublicKey, priv)
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &priv.PublicKey, priv)
 	if err != nil {
 		log.Fatalf("Failed to create certificate: %s", err)
 	}

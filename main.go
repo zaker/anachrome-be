@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"./cert"
+	"./spa"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"golang.org/x/crypto/acme/autocert"
@@ -25,6 +26,8 @@ type WebConfig struct {
 	HTTPPort int
 	//HTTPSPort to here
 	HTTPSPort int
+	//AppDir path to SPA
+	AppDir string
 }
 
 func initWebConfig(fileName string) WebConfig {
@@ -92,7 +95,9 @@ func CSP() echo.MiddlewareFunc {
 			p := filepath.Ext(c.Request().URL.Path)
 			typ, ok := mimeTypes[p]
 			if ok && len(typ) > 0 {
-				c.Response().Header().Set(echo.HeaderContentSecurityPolicy, "default-src 'self';img-src 'self' data:;style-src 'self' ")
+				c.Response().Header().Set(
+					echo.HeaderContentSecurityPolicy,
+					"default-src 'self';img-src 'self' data:;style-src 'self' 'unsafe-inline'")
 			}
 			return next(c)
 		}
@@ -102,18 +107,20 @@ func CSP() echo.MiddlewareFunc {
 
 var confFile = flag.String("c", "", "Path to config file")
 var appDir = flag.String("a", "", "Path to App dist")
-var bDir = flag.String("b", "", "Path to App dist")
+var bDir = flag.String("b", "", "Path to Blog")
 
 func main() {
 	flag.Parse()
 	log.Println("Reading config from ", *confFile)
 	conf := initWebConfig(*confFile)
+	s := spa.New(conf.AppDir)
+	s.IndexParse()
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash())
 	log.Println("Config:", conf)
 	if conf.HostName == "localhost" {
 		if !fileExist("cert.pem") || !fileExist("key.pem") {
-			cert.GenerateCertFiles("localhost", 365*24*time.Hour, true)
+			cert.GenerateCertFiles("localhost", 365*24*time.Hour, false)
 		}
 	} else {
 		e.Pre(middleware.HTTPSRedirect())
@@ -136,18 +143,13 @@ func main() {
 	e.GET("/", func(c echo.Context) (err error) {
 		pusher, ok := c.Response().Writer.(http.Pusher)
 		if ok {
-
-			if err = pusher.Push("/styles.d41d8cd98f00b204e980.bundle.css", nil); err != nil {
-				return
-			}
-			if err = pusher.Push("/inline.43bdfccbf94fc813c9b1.bundle.js", nil); err != nil {
-				return
-			}
-			if err = pusher.Push("/polyfills.43a6a16e791d2caa0484.bundle.js", nil); err != nil {
-				return
+			for _, f := range s.PushFiles {
+				if err = pusher.Push(f, nil); err != nil {
+					return
+				}
 			}
 		}
-		return c.File(".tmp/index.html")
+		return c.File(s.IndexPath)
 	})
 
 	if conf.HostName == "localhost" {
