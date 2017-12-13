@@ -147,7 +147,7 @@ func main() {
 				return
 			}
 		}
-		return c.File("../anachrome-fe/dist/index.html")
+		return c.File(".tmp/index.html")
 	})
 
 	if conf.HostName == "localhost" {

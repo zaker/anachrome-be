@@ -1,10 +1,11 @@
 package index
 
 import (
-	"html/template"
+	"fmt"
 	"log"
-	"os"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 var indexTmplt = `<!doctype html>
@@ -27,17 +28,31 @@ var stuleTag = `<link href="styles.d41d8cd98f00b204e980.bundle.css" rel="stylesh
 
 //HTML creates an index.html from a set of angular app files and adds security headers
 func HTML(rootDir string) string {
-	var (
-		funcs     = template.FuncMap{"join": strings.Join}
-		guardians = []string{"Gamora", "Groot", "Nebula", "Rocket", "Star-Lord"}
-	)
-
-	masterTmpl, err := template.New("index").Funcs(funcs).Parse(indexTmplt)
+	s := `<p>Links:</p><ul><li><a href="foo">Foo</a><li><a href="/bar/baz">BarBaz</a></ul>`
+	doc, err := html.Parse(strings.NewReader(s))
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := masterTmpl.Execute(os.Stdout, guardians); err != nil {
-		log.Fatal(err)
+	var f func(*html.Node)
+	f = func(n *html.Node) {
+		if n.Type == html.ElementNode && (n.Data == "script" || n.Data == "link") {
+			for _, a := range n.Attr {
+				if n.Data == "script" && a.Key == "src" {
+					fmt.Println("hashing:", a.Val)
+					break
+				}
+
+				if n.Data == "link" && a.Key == "href" {
+					fmt.Println("hashing:", a.Val)
+					break
+				}
+			}
+			n.Attr = append(n.Attr, html.Attribute{Key: "integrity"})
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			f(c)
+		}
 	}
+	f(doc)
 	return ""
 }
