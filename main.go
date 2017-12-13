@@ -69,17 +69,33 @@ var mimeTypes = map[string]string{
 	".js":   "text/javascript",
 	".css":  "text/css",
 	".html": "text/html",
+	".ico":  "image/x-icon",
 	"":      "text/html"}
 
-//MIME middleware sets type based on extension
+//MIME middleware sets content type headers based on extension
 func MIME() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			p := filepath.Ext(c.Request().URL.Path)
-			typ := mimeTypes[p]
-			log.Println("MIME", typ, p)
-			c.Response().Header().Set(echo.HeaderContentType, typ)
+			typ, ok := mimeTypes[p]
+			if ok && len(typ) > 0 {
+				c.Response().Header().Set(echo.HeaderContentType, typ)
+			}
+			return next(c)
+		}
 
+	}
+}
+
+//CSP middleware sets content security policy
+func CSP() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			p := filepath.Ext(c.Request().URL.Path)
+			typ, ok := mimeTypes[p]
+			if ok && len(typ) > 0 {
+				c.Response().Header().Set(echo.HeaderContentSecurityPolicy, "default-src 'self'")
+			}
 			return next(c)
 		}
 
@@ -116,6 +132,7 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(middleware.Logger())
 	e.Use(MIME())
+	e.Use(CSP())
 	e.Static("/", "../anachrome-fe/dist")
 	e.GET("/", func(c echo.Context) (err error) {
 		pusher, ok := c.Response().Writer.(http.Pusher)
