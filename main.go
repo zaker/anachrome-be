@@ -32,7 +32,6 @@ func initWebConfig(fileName string) WebConfig {
 		fileName = "webConf.json"
 	}
 
-	log.Println(fileName);
 	conf := WebConfig{}
 	err := func(fileName string) error {
 		content, err := ioutil.ReadFile(fileName)
@@ -41,8 +40,8 @@ func initWebConfig(fileName string) WebConfig {
 		}
 		return json.Unmarshal(content, &conf)
 	}(fileName)
-	if err != nil{
-		log.Println(err)
+	if err != nil {
+		log.Println("Error reading config file", err)
 		conf.HostName = "localhost"
 		conf.HTTPPort = 8080
 		conf.HTTPSPort = 8443
@@ -63,7 +62,6 @@ func fileExist(filePath string) bool {
 	}
 	return false
 }
-
 
 var mimeTypes = map[string]string{
 	".js":   "text/javascript",
@@ -94,7 +92,7 @@ func CSP() echo.MiddlewareFunc {
 			p := filepath.Ext(c.Request().URL.Path)
 			typ, ok := mimeTypes[p]
 			if ok && len(typ) > 0 {
-				c.Response().Header().Set(echo.HeaderContentSecurityPolicy, "default-src 'self'")
+				c.Response().Header().Set(echo.HeaderContentSecurityPolicy, "default-src 'self';img-src 'self' data:;style-src 'self' ")
 			}
 			return next(c)
 		}
@@ -108,11 +106,11 @@ var bDir = flag.String("b", "", "Path to App dist")
 
 func main() {
 	flag.Parse()
-	log.Println("Reading config",*confFile)
+	log.Println("Reading config from ", *confFile)
 	conf := initWebConfig(*confFile)
 	e := echo.New()
 	e.Pre(middleware.RemoveTrailingSlash())
-	log.Println("Fooo",conf)
+	log.Println("Config:", conf)
 	if conf.HostName == "localhost" {
 		if !fileExist("cert.pem") || !fileExist("key.pem") {
 			cert.GenerateCertFiles("localhost", 365*24*time.Hour, true)
@@ -161,4 +159,3 @@ func main() {
 		e.Logger.Fatal(e.StartAutoTLS(":" + strconv.Itoa(conf.HTTPSPort)))
 	}
 }
-
