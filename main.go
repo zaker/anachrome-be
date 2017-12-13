@@ -120,7 +120,7 @@ func main() {
 	log.Println("Config:", conf)
 	if conf.HostName == "localhost" {
 		if !fileExist("cert.pem") || !fileExist("key.pem") {
-			cert.GenerateCertFiles("localhost", 365*24*time.Hour, false)
+			cert.GenerateCertFiles("localhost", 365*24*time.Hour, true)
 		}
 	} else {
 		e.Pre(middleware.HTTPSRedirect())
@@ -153,7 +153,7 @@ func main() {
 	})
 
 	if conf.HostName == "localhost" {
-		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), "cert.pem", "key.pem"))
+		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), ".tmp/cert.pem", ".tmp/key.pem"))
 	} else {
 		go func(c *echo.Echo) {
 			e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.HTTPPort)))
