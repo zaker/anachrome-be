@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"./cert"
@@ -123,7 +124,14 @@ func main() {
 			cert.GenerateCertFiles("localhost", 365*24*time.Hour, true)
 		}
 	} else {
-		e.Pre(middleware.HTTPSRedirect())
+		e.Pre(middleware.HTTPSRedirectWithConfig(middleware.RedirectConfig{
+			Skipper: func(c echo.Context) bool {
+				if strings.HasPrefix(c.Request().URL.Path, ".well-known/") {
+					return true
+				}
+				return false
+			},
+		}))
 		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist("anachro.me")
 		// Cache certificates
 		e.AutoTLSManager.Prompt = autocert.AcceptTOS
