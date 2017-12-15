@@ -1,1 +1,1 @@
-{"HostName":"localhost","HTTPPort":8080,"HTTPSPort":8443,"AppDir":"../anachrome-fe/dist/"}
+{ "HostName": "localhost", "HTTPPort": 8080, "HTTPSPort": 8443, "AppDir": "../anachrome-fe/dist/" }

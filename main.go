@@ -7,14 +7,14 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"./cert"
+	"./middleware"
 	"./spa"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	ec_middleware "github.com/labstack/echo/middleware"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -28,6 +28,15 @@ type WebConfig struct {
 	HTTPSPort int
 	//AppDir path to SPA
 	AppDir string
+}
+
+//HostURI returns normalized uri for host
+func (w *WebConfig) HostURI() string {
+	uri := "https://" + w.HostName
+	if w.HTTPSPort != 443 {
+		uri += ":" + strconv.Itoa(w.HTTPSPort)
+	}
+	return uri
 }
 
 func initWebConfig(fileName string) WebConfig {
@@ -66,45 +75,6 @@ func fileExist(filePath string) bool {
 	return false
 }
 
-var mimeTypes = map[string]string{
-	".js":   "text/javascript",
-	".css":  "text/css",
-	".html": "text/html",
-	".ico":  "image/x-icon",
-	"":      "text/html"}
-
-//MIME middleware sets content type headers based on extension
-func MIME() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			p := filepath.Ext(c.Request().URL.Path)
-			typ, ok := mimeTypes[p]
-			if ok && len(typ) > 0 {
-				c.Response().Header().Set(echo.HeaderContentType, typ)
-			}
-			return next(c)
-		}
-
-	}
-}
-
-//CSP middleware sets content security policy
-func CSP() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			p := filepath.Ext(c.Request().URL.Path)
-			typ, ok := mimeTypes[p]
-			if ok && len(typ) > 0 {
-				c.Response().Header().Set(
-					echo.HeaderContentSecurityPolicy,
-					"default-src 'self';img-src 'self' data:;style-src 'self' 'unsafe-inline'")
-			}
-			return next(c)
-		}
-
-	}
-}
-
 var confFile = flag.String("c", "", "Path to config file")
 var appDir = flag.String("a", "", "Path to App dist")
 var bDir = flag.String("b", "", "Path to Blog")
@@ -116,30 +86,44 @@ func main() {
 	s := spa.New(conf.AppDir)
 	s.IndexParse()
 	e := echo.New()
-	e.Pre(middleware.RemoveTrailingSlash())
+	e.Pre(ec_middleware.RemoveTrailingSlash())
+
+	go func(e *echo.Echo) {
+		e.GET("/", func(c echo.Context) (err error) {
+			return c.Redirect(http.StatusMovedPermanently, conf.HostURI())
+		})
+
+		e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.HTTPPort)))
+	}(e)
+
 	log.Println("Config:", conf)
 	if conf.HostName == "localhost" {
-		if !fileExist("cert.pem") || !fileExist("key.pem") {
+		if !fileExist(".tmp/cert.pem") || !fileExist(".tmp/key.pem") {
 			cert.GenerateCertFiles("localhost", 365*24*time.Hour, true)
 		}
 	} else {
-		e.Pre(middleware.HTTPSRedirect())
-		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist("anachro.me")
+		e.Pre(ec_middleware.HTTPSRedirect())
+		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(conf.HostName)
 		// Cache certificates
 		e.AutoTLSManager.Prompt = autocert.AcceptTOS
-		e.AutoTLSManager.Cache = autocert.DirCache("/var/www/.cache")
+		e.AutoTLSManager.Cache = autocert.DirCache(".cache")
 	}
-	e.Use(middleware.BodyLimit("2M"))
-	e.Use(middleware.CSRF())
-	e.Use(middleware.Secure())
-	e.Use(middleware.GzipWithConfig(middleware.GzipConfig{
+	e.Use(ec_middleware.BodyLimit("2M"))
+	e.Use(ec_middleware.CSRF())
+	e.Use(ec_middleware.CORSWithConfig(ec_middleware.CORSConfig{
+		AllowOrigins: []string{conf.HostURI()},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
+	e.Use(ec_middleware.Secure())
+	e.Use(ec_middleware.GzipWithConfig(ec_middleware.GzipConfig{
 		Level: 5,
 	}))
-	e.Use(middleware.Recover())
-	e.Use(middleware.Logger())
-	e.Use(MIME())
-	e.Use(CSP())
-	e.Static("/", "../anachrome-fe/dist")
+	e.Use(ec_middleware.Recover())
+	e.Use(ec_middleware.Logger())
+	e.Use(middleware.MIME())
+	e.Use(middleware.CSP())
+	e.Use(middleware.HSTS())
+	e.Static("/", conf.AppDir)
 	e.GET("/", func(c echo.Context) (err error) {
 		pusher, ok := c.Response().Writer.(http.Pusher)
 		if ok {
@@ -155,9 +139,7 @@ func main() {
 	if conf.HostName == "localhost" {
 		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), ".tmp/cert.pem", ".tmp/key.pem"))
 	} else {
-		go func(c *echo.Echo) {
-			e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.HTTPPort)))
-		}(e)
+
 		e.Logger.Fatal(e.StartAutoTLS(":" + strconv.Itoa(conf.HTTPSPort)))
 	}
 }
