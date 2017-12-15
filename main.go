@@ -106,7 +106,8 @@ func main() {
 
 		e.Pre(ec_middleware.HTTPSRedirectWithConfig(ec_middleware.RedirectConfig{
 			Skipper: func(c echo.Context) bool {
-				if strings.HasPrefix(c.Request().URL.Path, ".well-known/") {
+
+				if strings.HasPrefix(c.Request().URL.Path, "/.well-known/") {
 					return true
 				}
 				return false
