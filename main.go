@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"./cert"
@@ -102,7 +103,15 @@ func main() {
 			cert.GenerateCertFiles("localhost", 365*24*time.Hour, true)
 		}
 	} else {
-		e.Pre(ec_middleware.HTTPSRedirect())
+
+		e.Pre(ec_middleware.HTTPSRedirectWithConfig(ec_middleware.RedirectConfig{
+			Skipper: func(c echo.Context) bool {
+				if strings.HasPrefix(c.Request().URL.Path, ".well-known/") {
+					return true
+				}
+				return false
+			},
+		}))
 		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(conf.HostName)
 		// Cache certificates
 		e.AutoTLSManager.Prompt = autocert.AcceptTOS
