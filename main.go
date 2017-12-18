@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"./spa"
 	"github.com/labstack/echo"
 	ec_middleware "github.com/labstack/echo/middleware"
+	"github.com/rjeczalik/notify"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -77,14 +79,38 @@ func fileExist(filePath string) bool {
 }
 
 var confFile = flag.String("c", "", "Path to config file")
-var appDir = flag.String("a", "", "Path to App dist")
-var bDir = flag.String("b", "", "Path to Blog")
 
 func main() {
 	flag.Parse()
 	log.Println("Reading config from ", *confFile)
 	conf := initWebConfig(*confFile)
 	s := spa.New(conf.AppDir)
+	absPath, err := filepath.Abs(conf.AppDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := make(chan notify.EventInfo, 1)
+	if err := notify.Watch(absPath[:len(absPath)-5]+"/...", c, notify.Create|notify.Write); err != nil {
+		log.Fatal(err)
+	}
+	defer notify.Stop(c)
+	go func() {
+		for {
+			select {
+			case ei := <-c:
+				dirPath, fileName := filepath.Split(ei.Path())
+				basePath := filepath.Base(dirPath)
+
+				if basePath == "dist" && fileName == "index.html" {
+					log.Println("Hit")
+					go s.IndexParse()
+				}
+				//
+			}
+		}
+
+	}()
+
 	s.IndexParse()
 	e := echo.New()
 	e.Pre(ec_middleware.RemoveTrailingSlash())
