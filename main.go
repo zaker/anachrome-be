@@ -94,7 +94,24 @@ func main() {
 		log.Fatal(err)
 	}
 	defer notify.Stop(c)
+	go func() {
+		for {
+			select {
+			case ei := <-c:
+				dirPath, fileName := filepath.Split(ei.Path())
+				basePath := filepath.Base(dirPath)
 
+				if basePath == "dist" && fileName == "index.html" {
+					log.Println("Hit")
+					go s.IndexParse()
+				}
+				//
+			}
+		}
+
+	}()
+
+	s.IndexParse()
 	e := echo.New()
 	e.Pre(ec_middleware.RemoveTrailingSlash())
 
@@ -150,9 +167,9 @@ func main() {
 	if conf.HostName == "localhost" {
 		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), ".tmp/cert.pem", ".tmp/key.pem"))
 	} else {
-		go func(e *echo.Echo) {
-			e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.HTTPPort)))
-		}(e)
+		// go func(e *echo.Echo) {
+		// 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.HTTPPort)))
+		// }(e)
 		e.Logger.Fatal(e.StartAutoTLS(":" + strconv.Itoa(conf.HTTPSPort)))
 	}
 }
