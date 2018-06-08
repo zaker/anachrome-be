@@ -94,31 +94,14 @@ func main() {
 		log.Fatal(err)
 	}
 	defer notify.Stop(c)
-	go func() {
-		for {
-			select {
-			case ei := <-c:
-				dirPath, fileName := filepath.Split(ei.Path())
-				basePath := filepath.Base(dirPath)
 
-				if basePath == "dist" && fileName == "index.html" {
-					log.Println("Hit")
-					go s.IndexParse()
-				}
-				//
-			}
-		}
-
-	}()
-
-	s.IndexParse()
 	e := echo.New()
 	e.Pre(ec_middleware.RemoveTrailingSlash())
 
 	log.Println("Config:", conf)
 	if conf.HostName == "localhost" {
 		if !fileExist(".tmp/cert.pem") || !fileExist(".tmp/key.pem") {
-			cert.GenerateCertFiles("localhost", 365*24*time.Hour, true)
+			cert.GenerateCertFiles([]string{"localhost"}, 365*24*time.Hour, true)
 		}
 	} else {
 

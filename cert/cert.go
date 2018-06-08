@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"net"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -27,10 +26,10 @@ func pemBlockForKey(priv *rsa.PrivateKey) *pem.Block {
 }
 
 // GenerateCertFiles generates a certificate files
-func GenerateCertFiles(host string, validFor time.Duration, isCA bool) {
+func GenerateCertFiles(hosts []string, validFor time.Duration, isCA bool) {
 
-	if len(host) == 0 {
-		log.Fatalf("Missing required --host parameter")
+	if len(hosts) == 0 {
+		log.Fatalf("Need Host")
 	}
 
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -62,7 +61,6 @@ func GenerateCertFiles(host string, validFor time.Duration, isCA bool) {
 		BasicConstraintsValid: true,
 	}
 
-	hosts := strings.Split(host, ",")
 	for _, h := range hosts {
 		if ip := net.ParseIP(h); ip != nil {
 			template.IPAddresses = append(template.IPAddresses, ip)
