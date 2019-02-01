@@ -94,20 +94,10 @@ func (w *WebConfig) GenerateCert(e *echo.Echo) {
 		if !fileExist(".tmp/cert.pem") || !fileExist(".tmp/key.pem") {
 			cert.GenerateCertFiles([]string{"localhost"}, 365*24*time.Hour, true)
 		}
-	} else {
-
-		e.Pre(middleware.HTTPSRedirectWithConfig(middleware.RedirectConfig{
-			Skipper: func(c echo.Context) bool {
-
-				if strings.HasPrefix(c.Request().URL.Path, "/.well-known/") {
-					return true
-				}
-				return false
-			},
-		}))
-		e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(w.HostName)
-		// Cache certificates
-		e.AutoTLSManager.Prompt = autocert.AcceptTOS
-		e.AutoTLSManager.Cache = autocert.DirCache(".cache")
+	} 
+		// e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(w.HostName)
+		// // Cache certificates
+		// e.AutoTLSManager.Prompt = autocert.AcceptTOS
+		// e.AutoTLSManager.Cache = autocert.DirCache(".cache")
 	}
 }

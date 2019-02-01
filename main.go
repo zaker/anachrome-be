@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"strings"
 
 	"log"
 	"net/http"
@@ -71,7 +72,15 @@ func main() {
 	// 	AllowOrigins: []string{conf.HostURI()},
 	// 	AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	// }))
+	e.Use(ec_middleware.HTTPSRedirectWithConfig(ec_middleware.RedirectConfig{
+		Skipper: func(c echo.Context) bool {
 
+			if conf.HostName == "localhost" || strings.HasPrefix(c.Request().URL.Path, "/.well-known/") {
+				return true
+			}
+			return false
+		},
+	}))
 	e.Use(ec_middleware.Secure())
 	e.Use(ec_middleware.GzipWithConfig(ec_middleware.GzipConfig{
 		Level: 5,
@@ -126,7 +135,7 @@ func main() {
 	} else {
 		s := &http.Server{
 			Handler: e.AutoTLSManager.HTTPHandler(nil),
-			Addr: strconv.Itoa(conf.HTTPPort),
+			Addr:    strconv.Itoa(conf.HTTPPort),
 		}
 
 		go s.ListenAndServe()
