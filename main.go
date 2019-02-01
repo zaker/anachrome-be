@@ -124,9 +124,12 @@ func main() {
 	if conf.HostName == "localhost" {
 		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), ".tmp/cert.pem", ".tmp/key.pem"))
 	} else {
-		go func(e *echo.Echo) {
-			e.Logger.Fatal(e.Start(":" + strconv.Itoa(conf.HTTPPort)))
-		}(e)
+		s := &http.Server{
+			Handler: e.AutoTLSManager.HTTPHandler(nil),
+			Addr: strconv.Itoa(conf.HTTPPort),
+		}
+
+		go s.ListenAndServe()
 		e.Logger.Fatal(e.StartAutoTLS(":" + strconv.Itoa(conf.HTTPSPort)))
 	}
 }
