@@ -3,17 +3,15 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/zaker/anachrome-be/cert"
 	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/zaker/anachrome-be/cert"
+
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 //WebConfig contains settings for webserver
@@ -94,5 +92,5 @@ func (w *WebConfig) GenerateCert(e *echo.Echo) {
 		if !fileExist(".tmp/cert.pem") || !fileExist(".tmp/key.pem") {
 			cert.GenerateCertFiles([]string{"localhost"}, 365*24*time.Hour, true)
 		}
-	} 
+	}
 }
