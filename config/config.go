@@ -95,9 +95,4 @@ func (w *WebConfig) GenerateCert(e *echo.Echo) {
 			cert.GenerateCertFiles([]string{"localhost"}, 365*24*time.Hour, true)
 		}
 	} 
-		// e.AutoTLSManager.HostPolicy = autocert.HostWhitelist(w.HostName)
-		// // Cache certificates
-		// e.AutoTLSManager.Prompt = autocert.AcceptTOS
-		// e.AutoTLSManager.Cache = autocert.DirCache(".cache")
-	}
 }

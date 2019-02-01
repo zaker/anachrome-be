@@ -75,7 +75,7 @@ func main() {
 	e.Use(ec_middleware.HTTPSRedirectWithConfig(ec_middleware.RedirectConfig{
 		Skipper: func(c echo.Context) bool {
 
-			if conf.HostName == "localhost" || strings.HasPrefix(c.Request().URL.Path, "/.well-known/") {
+			if conf.IsDebug || strings.HasPrefix(c.Request().URL.Path, "/.well-known/") {
 				return true
 			}
 			return false
