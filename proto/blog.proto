@@ -1,0 +1,7 @@
+syntax="proto3";
+
+message Blog {
+    string title = 1;
+    string body = 2;
+    int64 timestamp =3;
+}

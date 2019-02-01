@@ -2,18 +2,21 @@ package main
 
 import (
 	"flag"
+
 	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 
-	"./config"
-	"./controllers"
-	"./middleware"
-	"./spa"
+	"github.com/zaker/anachrome-be/config"
+	"github.com/zaker/anachrome-be/controllers"
+	"github.com/zaker/anachrome-be/middleware"
+	"github.com/zaker/anachrome-be/spa"
 
-	"github.com/labstack/echo"
-	ec_middleware "github.com/labstack/echo/middleware"
+	"github.com/graphql-go/graphql"
+	gql_handler "github.com/graphql-go/handler"
+	"github.com/labstack/echo/v4"
+	ec_middleware "github.com/labstack/echo/v4/middleware"
 	"github.com/rjeczalik/notify"
 )
 
@@ -96,7 +99,27 @@ func main() {
 	// Info
 	e.Any("/info", controllers.Info)
 	// GQL
-	e.Any("/gql", controllers.GQL)
+	// Schema
+	fields := graphql.Fields{
+		"hello": &graphql.Field{
+			Type: graphql.String,
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				log.Println("oioioioioioioioioioio")
+				return "world", nil
+			},
+		},
+	}
+	rootQuery := graphql.ObjectConfig{Name: "RootQuery", Fields: fields}
+	schemaConfig := graphql.SchemaConfig{Query: graphql.NewObject(rootQuery)}
+	schema, err := graphql.NewSchema(schemaConfig)
+	gqlh := gql_handler.New(&gql_handler.Config{
+		Schema:     &schema,
+		Pretty:     true,
+		GraphiQL:   true,
+		Playground: false,
+	})
+
+	e.Any("/gql", echo.WrapHandler(gqlh))
 
 	if conf.HostName == "localhost" {
 		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), ".tmp/cert.pem", ".tmp/key.pem"))

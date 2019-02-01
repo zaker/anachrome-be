@@ -1,9 +1,9 @@
 package config
 
 import (
-	"../cert"
 	"encoding/json"
 	"fmt"
+	"github.com/zaker/anachrome-be/cert"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"golang.org/x/crypto/acme/autocert"
 )
 

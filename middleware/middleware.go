@@ -3,7 +3,7 @@ package middleware
 import (
 	"path/filepath"
 
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 )
 
 var mimeTypes = map[string]string{
