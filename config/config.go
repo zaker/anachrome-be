@@ -27,6 +27,8 @@ type WebConfig struct {
 	//AppDir path to SPA
 	AppDir string
 
+	Cert    string
+	CertKey string
 	//DebugSkipper
 	DebugSkipper func(echo.Context) bool
 }

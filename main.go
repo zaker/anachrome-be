@@ -113,7 +113,6 @@ func main() {
 		"hello": &graphql.Field{
 			Type: graphql.String,
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				log.Println("oioioioioioioioioioio")
 				return "world", nil
 			},
 		},
@@ -132,7 +131,13 @@ func main() {
 
 	if conf.HostName == "localhost" {
 		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), ".tmp/cert.pem", ".tmp/key.pem"))
-	} else {
+	} else if conf.Cert != ""{
+		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), conf.Cert, conf.CertKey))
+	}	else {
+		err = ConfigManager(&e.AutoTLSManager)
+		if err != nil {
+			log.Fatal(err)
+		}
 		s := &http.Server{
 			Handler: e.AutoTLSManager.HTTPHandler(nil),
 			Addr:    strconv.Itoa(conf.HTTPPort),
