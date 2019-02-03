@@ -64,7 +64,10 @@ func main() {
 	log.Println("Config:", conf)
 	conf.GenerateCert(e)
 	e.Use(ec_middleware.BodyLimit("2M"))
-	e.Use(ec_middleware.CSRF())
+	if !conf.IsDebug {
+
+		e.Use(ec_middleware.CSRF())
+	}
 
 	e.Use(ec_middleware.CORS())
 	// e.Use(ec_middleware.CORSWithConfig(ec_middleware.CORSConfig{
@@ -81,6 +84,7 @@ func main() {
 			return false
 		},
 	}))
+
 	e.Use(ec_middleware.Secure())
 	e.Use(ec_middleware.GzipWithConfig(ec_middleware.GzipConfig{
 		Level: 5,
@@ -88,9 +92,11 @@ func main() {
 	e.Use(ec_middleware.Recover())
 	e.Use(ec_middleware.Logger())
 	e.Use(middleware.MIME())
-	e.Use(middleware.CSP())
-	e.Use(middleware.HSTS())
+	if !conf.IsDebug {
 
+		e.Use(middleware.CSP())
+		e.Use(middleware.HSTS())
+	}
 	// home route
 	e.Static("/", conf.AppDir)
 	e.GET("/", func(c echo.Context) (err error) {
@@ -123,17 +129,17 @@ func main() {
 	gqlh := gql_handler.New(&gql_handler.Config{
 		Schema:     &schema,
 		Pretty:     true,
-		GraphiQL:   true,
-		Playground: false,
+		GraphiQL:   false,
+		Playground: conf.IsDebug,
 	})
 
 	e.Any("/gql", echo.WrapHandler(gqlh))
 
 	if conf.HostName == "localhost" {
 		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), ".tmp/cert.pem", ".tmp/key.pem"))
-	} else if conf.Cert != ""{
+	} else if conf.Cert != "" {
 		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), conf.Cert, conf.CertKey))
-	}	else {
+	} else {
 		err = ConfigManager(&e.AutoTLSManager)
 		if err != nil {
 			log.Fatal(err)
