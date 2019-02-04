@@ -14,7 +14,6 @@ import (
 	"github.com/zaker/anachrome-be/middleware"
 	"github.com/zaker/anachrome-be/spa"
 
-
 	"github.com/labstack/echo/v4"
 	ec_middleware "github.com/labstack/echo/v4/middleware"
 	"github.com/rjeczalik/notify"
@@ -113,9 +112,9 @@ func main() {
 	// Info
 	e.Any("/info", controllers.Info)
 	// GQL
-	
-	gql,err  := controllers.Init(conf)
-	if err != nil{
+
+	gql, err := controllers.InitGQL(conf)
+	if err != nil {
 		log.Fatal(err)
 	}
 	e.Any("/gql", echo.WrapHandler(gql.Handler()))

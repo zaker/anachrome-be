@@ -10,7 +10,7 @@ type GQL struct {
 	conf handler.Config
 }
 
-func Init(c config.WebConfig) (*GQL, error) {
+func InitGQL(c config.WebConfig) (*GQL, error) {
 
 	gql := new(GQL)
 	// Schema
