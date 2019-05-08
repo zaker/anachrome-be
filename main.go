@@ -124,16 +124,15 @@ func main() {
 	} else if conf.Cert != "" {
 		e.Logger.Fatal(e.StartTLS(":"+strconv.Itoa(conf.HTTPSPort), conf.Cert, conf.CertKey))
 	} else {
-		err = ConfigManager(&e.AutoTLSManager)
-		if err != nil {
-			log.Fatal(err)
-		}
-		s := &http.Server{
-			Handler: e.AutoTLSManager.HTTPHandler(nil),
-			Addr:    strconv.Itoa(conf.HTTPPort),
-		}
+		// err = ConfigManager(&e.AutoTLSManager)
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		// s := &http.Server{
+		// 	Addr: strconv.Itoa(conf.HTTPPort),
+		// }
 
-		go s.ListenAndServe()
+		// go s.ListenAndServe()
 		e.Logger.Fatal(e.StartAutoTLS(":" + strconv.Itoa(conf.HTTPSPort)))
 	}
 }

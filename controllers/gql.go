@@ -5,12 +5,13 @@ import (
 	"github.com/graphql-go/handler"
 	"github.com/zaker/anachrome-be/config"
 )
+
 // GQL graphql setup for anachro.me
 type GQL struct {
 	conf handler.Config
 }
 
-// InitGQL initializes components 
+// InitGQL initializes components
 func InitGQL(c config.WebConfig) (*GQL, error) {
 
 	gql := new(GQL)

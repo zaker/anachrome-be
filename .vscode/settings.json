@@ -1,4 +1,5 @@
 {
     "go.lintOnSave": "workspace",
-    "go.useLanguageServer": false
+    "go.useLanguageServer": false,
+    "go.formatTool": "goimports"
 }
