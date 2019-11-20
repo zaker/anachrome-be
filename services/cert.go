@@ -1,4 +1,4 @@
-package cert
+package services
 
 import (
 	"crypto/rand"
@@ -102,4 +102,13 @@ func GenerateCertFiles(hosts []string, validFor time.Duration, isCA bool) {
 		return
 	}
 	log.Print("written key.pem\n")
+}
+
+// GenerateCert generates local cert or uses letsEncrypt
+func GenerateCert(hostName string ) {
+	if hostName == "localhost" {
+		if !FileExist(".tmp/cert.pem") || !FileExist(".tmp/key.pem") {
+			GenerateCertFiles([]string{"localhost"}, 365*24*time.Hour, true)
+		}
+	}
 }

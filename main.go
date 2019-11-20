@@ -12,7 +12,7 @@ import (
 	"github.com/zaker/anachrome-be/config"
 	"github.com/zaker/anachrome-be/controllers"
 	"github.com/zaker/anachrome-be/middleware"
-	"github.com/zaker/anachrome-be/spa"
+	"github.com/zaker/anachrome-be/services"
 
 	"github.com/labstack/echo/v4"
 	ec_middleware "github.com/labstack/echo/v4/middleware"
@@ -28,7 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	s := spa.New(conf.AppDir)
+	s := services.NewSPA(conf.AppDir)
 	absPath, err := filepath.Abs(conf.AppDir)
 	if err != nil {
 		log.Fatal(err)
@@ -60,7 +60,7 @@ func main() {
 	e.Pre(ec_middleware.RemoveTrailingSlash())
 
 	log.Println("Config:", conf)
-	conf.GenerateCert(e)
+	services.GenerateCert(conf.HostName)
 	e.Use(ec_middleware.BodyLimit("2M"))
 	if !conf.IsDebug {
 

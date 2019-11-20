@@ -1,4 +1,4 @@
-package spa
+package services
 
 import (
 	"log"
@@ -18,7 +18,7 @@ type SPA struct {
 }
 
 //New initializes SPA
-func New(appDir string) *SPA {
+func NewSPA(appDir string) *SPA {
 
 	tmpIndex := ".tmp/index.html"
 	if _, err := os.Stat(".tmp"); os.IsNotExist(err) {

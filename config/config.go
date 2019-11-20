@@ -5,12 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"strconv"
-	"time"
-
-	"github.com/zaker/anachrome-be/cert"
-
 	"github.com/labstack/echo/v4"
 )
 
@@ -68,13 +63,6 @@ func Load(fileName string) (WebConfig, error) {
 	return conf, nil
 }
 
-func fileExist(filePath string) bool {
-	if _, err := os.Stat(filePath); err == nil {
-		return true
-	}
-	return false
-}
-
 //HostURI returns normalized uri for host
 func (w *WebConfig) HostURI() string {
 	uri := "https://" + w.HostName
@@ -86,13 +74,4 @@ func (w *WebConfig) HostURI() string {
 
 func (w *WebConfig) SkipIfDebug(c echo.Context) bool {
 	return w.IsDebug
-}
-
-// GenerateCert generates local cert or uses letsEncrypt
-func (w *WebConfig) GenerateCert(e *echo.Echo) {
-	if w.HostName == "localhost" {
-		if !fileExist(".tmp/cert.pem") || !fileExist(".tmp/key.pem") {
-			cert.GenerateCertFiles([]string{"localhost"}, 365*24*time.Hour, true)
-		}
-	}
 }
