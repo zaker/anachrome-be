@@ -18,14 +18,17 @@ type SPA struct {
 }
 
 //New initializes SPA
-func NewSPA(appDir string) *SPA {
+func NewSPA(appDir string) (*SPA, error) {
 
 	tmpIndex := ".tmp/index.html"
 	if _, err := os.Stat(".tmp"); os.IsNotExist(err) {
-		os.Mkdir(".tmp", 0777)
+		err := os.Mkdir(".tmp", 0777)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return &SPA{[]string{}, tmpIndex, appDir}
+	return &SPA{[]string{}, tmpIndex, appDir}, nil
 }
 
 //IndexParse creates an index.html from a set of angular app files and adds security headers

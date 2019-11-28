@@ -1,7 +1,7 @@
 {
     "DEVEL": "DEVEL",
     "HostName": "localhost",
-    "HTTP_PORT": 8080,
+    "HTTP_PORT": 18080,
     "HTTPS_PORT": 8443,
     "AppDir": "../anachrome-fe/dist/"
 }

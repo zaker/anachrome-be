@@ -13,11 +13,11 @@ import (
 	"time"
 )
 
-func publicKey(priv *rsa.PrivateKey) interface{} {
+// func publicKey(priv *rsa.PrivateKey) interface{} {
 
-	return &priv.PublicKey
+// 	return &priv.PublicKey
 
-}
+// }
 
 func pemBlockForKey(priv *rsa.PrivateKey) *pem.Block {
 
@@ -105,7 +105,7 @@ func GenerateCertFiles(hosts []string, validFor time.Duration, isCA bool) {
 }
 
 // GenerateCert generates local cert or uses letsEncrypt
-func GenerateCert(hostName string ) {
+func GenerateCert(hostName string) {
 	if hostName == "localhost" {
 		if !FileExist(".tmp/cert.pem") || !FileExist(".tmp/key.pem") {
 			GenerateCertFiles([]string{"localhost"}, 365*24*time.Hour, true)

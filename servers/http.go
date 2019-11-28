@@ -44,20 +44,16 @@ const (
 )
 
 type APIServer struct {
-	service     APIService
-	app         *echo.Echo
-	wc          WebConfig
-	version     string
-	hostAddr    string
-	domains     string
-	domainmail  string
-	privKeyFile string
-	certFile    string
-	profile     bool
-	isLocal     bool
+	serv     APIService
+	app      *echo.Echo
+	wc       WebConfig
+	version  string
+	hostAddr string
+	devMode  bool
 }
 
 type APIService struct {
+	spa *services.SPA
 }
 type WebConfig struct {
 	Mode       serverMode
@@ -87,14 +83,15 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	for _, opt := range opts {
 		err = opt.apply(hs)
 		if err != nil {
-			return nil, fmt.Errorf("Applying config failed: %v", err)
+			return nil, fmt.Errorf("Applying config failed: %w", err)
 		}
 	}
 	hs.app.Pre(ec_middleware.RemoveTrailingSlash())
 
 	services.GenerateCert(hs.hostAddr)
+
 	hs.app.Use(ec_middleware.BodyLimit("2M"))
-	if !hs.isLocal {
+	if !hs.devMode {
 
 		hs.app.Use(ec_middleware.CSRF())
 	}
@@ -105,15 +102,15 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	// 	AllowOrigins: []string{conf.HostURI()},
 	// 	AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	// }))
-	hs.app.Use(ec_middleware.HTTPSRedirectWithConfig(ec_middleware.RedirectConfig{
-		Skipper: func(c echo.Context) bool {
+	// hs.app.Use(ec_middleware.HTTPSRedirectWithConfig(ec_middleware.RedirectConfig{
+	// 	Skipper: func(c echo.Context) bool {
 
-			if hs.isLocal || strings.HasPrefix(c.Request().URL.Path, "/.well-known/") {
-				return true
-			}
-			return false
-		},
-	}))
+	// 		if hs.isLocal || strings.HasPrefix(c.Request().URL.Path, "/.well-known/") {
+	// 			return true
+	// 		}
+	// 		return false
+	// 	},
+	// }))
 
 	hs.app.Use(ec_middleware.Secure())
 	hs.app.Use(ec_middleware.GzipWithConfig(ec_middleware.GzipConfig{
@@ -122,7 +119,7 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	hs.app.Use(ec_middleware.Recover())
 	hs.app.Use(ec_middleware.Logger())
 	hs.app.Use(middleware.MIME())
-	if !hs.isLocal {
+	if !hs.devMode {
 
 		hs.app.Use(middleware.CSP())
 		hs.app.Use(middleware.HSTS())
@@ -211,7 +208,7 @@ func (hs *APIServer) registerEndpoints() {
 	hs.app.Any("/info", controllers.Info)
 	// GQL
 
-	gql, err := controllers.InitGQL(hs.isLocal)
+	gql, err := controllers.InitGQL(hs.devMode)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -227,7 +224,7 @@ func (as *APIServer) Serve() error {
 	fmt.Println("webconf", wc)
 	switch wc.Mode {
 	case INSECURE:
-		return as.app.Start("0.0.0.0:" + strconv.Itoa(wc.HttpPort))
+		return as.app.Start("localhost:" + strconv.Itoa(wc.HttpPort))
 	case SELFSIGNED:
 		return as.app.StartTLS(":"+strconv.Itoa(wc.HttpsPort), wc.Cert, wc.CertKey)
 	case LETSENCRYPT:
@@ -277,6 +274,14 @@ func WithHTTPOnly() Option {
 
 	return newFuncOption(func(hs *APIServer) (err error) {
 		hs.wc.Mode = INSECURE
+		return
+	})
+}
+
+func WithSPA(appDir string) Option {
+
+	return newFuncOption(func(hs *APIServer) (err error) {
+		hs.serv.spa, err = services.NewSPA(appDir)
 		return
 	})
 }
