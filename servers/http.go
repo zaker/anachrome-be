@@ -3,6 +3,7 @@ package servers
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -192,30 +193,32 @@ func WithOAuth2(oauthOpt OAuth2Option) Option {
 	})
 }
 
-func (hs *APIServer) registerEndpoints() {
+func (as *APIServer) registerEndpoints() {
 
-	// hs.app.Static("/", conf.AppDir)
-	// hs.app.GET("/", func(c echo.Context) (err error) {
-	// 	pusher, ok := c.Response().Writer.(http.Pusher)
-	// 	if ok {
-	// 		for _, f := range s.PushFiles {
-	// 			if err = pusher.Push(f, nil); err != nil {
-	// 				return
-	// 			}
-	// 		}
-	// 	}
-	// 	return c.File(s.IndexPath)
-	// })
-
+	if as.serv.spa != nil {
+		s := as.serv.spa
+		as.app.Static("/", s.AppDir())
+		as.app.GET("/", func(c echo.Context) (err error) {
+			pusher, ok := c.Response().Writer.(http.Pusher)
+			if ok {
+				for _, f := range s.PushFiles {
+					if err = pusher.Push(f, nil); err != nil {
+						return
+					}
+				}
+			}
+			return c.File(s.IndexPath)
+		})
+	}
 	// Info
-	hs.app.Any("/info", controllers.Info)
+	as.app.Any("/info", controllers.Info)
 	// GQL
 
-	gql, err := controllers.InitGQL(hs.devMode)
+	gql, err := controllers.InitGQL(as.devMode)
 	if err != nil {
 		log.Fatal(err)
 	}
-	hs.app.Any("/gql", echo.WrapHandler(gql.Handler()))
+	as.app.Any("/gql", echo.WrapHandler(gql.Handler()))
 
 }
 

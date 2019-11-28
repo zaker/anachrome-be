@@ -58,6 +58,12 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			servers.WithDevMode())
 	}
 
+	if len(config.AppDir()) > 0 {
+		opts = append(
+			opts,
+			servers.WithSPA(config.AppDir()))
+	}
+
 	// if config.UseLetsEncrypt() {
 	// 	opts = append(
 	// 		opts,

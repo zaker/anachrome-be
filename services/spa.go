@@ -27,8 +27,12 @@ func NewSPA(appDir string) (*SPA, error) {
 			return nil, err
 		}
 	}
-
+	log.Println("Serving SPA from ", appDir)
 	return &SPA{[]string{}, tmpIndex, appDir}, nil
+}
+
+func (s *SPA) AppDir() string {
+	return s.appDir
 }
 
 func (s *SPA) addPushFiles(n *html.Node) {
