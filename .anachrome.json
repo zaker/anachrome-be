@@ -3,5 +3,7 @@
     "HostName": "localhost",
     "HTTP_PORT": 18080,
     "HTTPS_PORT": 8443,
-    "AppDir": "../anachrome-fe/dist/"
+    "AppDir": "../anachrome-fe/dist/",
+    "CERT_PATH": ".tmp/cert.pem",
+    "KEY_PATH": ".tmp/key.pem"
 }

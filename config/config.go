@@ -24,7 +24,7 @@ import "github.com/spf13/viper"
 var Version string
 
 // 	//IsDebug : Sets it to allow developer niceties
-func IsDev() bool {
+func RunDevMode() bool {
 	return viper.GetString("DEVEL") == "DEVEL"
 }
 

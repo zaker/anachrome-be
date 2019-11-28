@@ -286,6 +286,14 @@ func WithSPA(appDir string) Option {
 	})
 }
 
+func WithDevMode() Option {
+
+	return newFuncOption(func(hs *APIServer) (err error) {
+		hs.devMode = true
+		return
+	})
+}
+
 // func WithTLS(certFile, keyFile string) Option {
 
 // 	return newFuncOption(func(hs *APIServer) (err error) {

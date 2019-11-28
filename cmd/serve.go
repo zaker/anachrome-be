@@ -47,11 +47,16 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 		return opts, fmt.Errorf("No host name")
 	}
 
-	// if config.HTTPOnly() {
-	opts = append(
-		opts,
-		servers.WithHTTPOnly())
-	// }
+	if config.HTTPOnly() {
+		opts = append(
+			opts,
+			servers.WithHTTPOnly())
+	}
+	if config.RunDevMode() {
+		opts = append(
+			opts,
+			servers.WithDevMode())
+	}
 
 	// if config.UseLetsEncrypt() {
 	// 	opts = append(
