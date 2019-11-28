@@ -3,6 +3,7 @@ package servers
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/zaker/anachrome-be/services"
 
 	"github.com/labstack/echo/v4"
+	"github.com/rjeczalik/notify"
+
 	// jwt "github.com/dgrijalva/jwt-go"
 	ec_middleware "github.com/labstack/echo/v4/middleware"
 )
@@ -282,6 +285,33 @@ func WithSPA(appDir string) Option {
 
 	return newFuncOption(func(hs *APIServer) (err error) {
 		hs.serv.spa, err = services.NewSPA(appDir)
+		if err != nil {
+			return err
+		}
+		absPath, err := filepath.Abs(appDir)
+		if err != nil {
+			return err
+		}
+		c := make(chan notify.EventInfo, 1)
+		if err := notify.Watch(absPath[:len(absPath)-5]+"/...", c, notify.Create|notify.Write); err != nil {
+			return err
+		}
+		defer notify.Stop(c)
+		go func() {
+			for ei := range c {
+				dirPath, fileName := filepath.Split(ei.Path())
+				basePath := filepath.Base(dirPath)
+
+				if basePath == "dist" && fileName == "index.html" {
+					log.Println("Hit")
+					go hs.serv.spa.IndexParse()
+				}
+				//
+			}
+
+		}()
+
+		hs.serv.spa.IndexParse()
 		return
 	})
 }
