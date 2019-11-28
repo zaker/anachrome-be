@@ -3,7 +3,6 @@ package controllers
 import (
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
-	"github.com/zaker/anachrome-be/config"
 )
 
 // GQL graphql setup for anachro.me
@@ -12,7 +11,7 @@ type GQL struct {
 }
 
 // InitGQL initializes components
-func InitGQL(c config.WebConfig) (*GQL, error) {
+func InitGQL(isDevMode bool) (*GQL, error) {
 
 	gql := new(GQL)
 	// Schema
@@ -32,9 +31,9 @@ func InitGQL(c config.WebConfig) (*GQL, error) {
 	}
 	gql.conf = handler.Config{
 		Schema:     &schema,
-		Pretty:     c.IsDebug,
+		Pretty:     isDevMode,
 		GraphiQL:   false,
-		Playground: c.IsDebug,
+		Playground: isDevMode,
 	}
 	return gql, nil
 }
