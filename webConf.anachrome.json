@@ -2,7 +2,5 @@
     "HostName": "anachro.me",
     "HTTPPort": 80,
     "HTTPSPort": 443,
-    "AppDir": "../anachrome-fe/dist/",
-    "Cert":"/etc/letsencrypt/live/anachro.me/fullchain.pem",
-    "CertKey" :"/etc/letsencrypt/live/anachro.me/privkey.pem"
+    "AppDir": "../anachrome-fe/dist/"
 }
