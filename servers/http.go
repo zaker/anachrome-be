@@ -58,6 +58,7 @@ type APIServer struct {
 
 type APIService struct {
 	spa *services.SPA
+	gql *services.GQL
 }
 type WebConfig struct {
 	Mode       serverMode
@@ -101,20 +102,6 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	}
 
 	hs.app.Use(ec_middleware.CORS())
-	// e.Use(ec_middleware.CORSWithConfig(ec_middleware.CORSConfig{
-	// 	// Skipper:      conf.DebugSkipper,
-	// 	AllowOrigins: []string{conf.HostURI()},
-	// 	AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
-	// }))
-	// hs.app.Use(ec_middleware.HTTPSRedirectWithConfig(ec_middleware.RedirectConfig{
-	// 	Skipper: func(c echo.Context) bool {
-
-	// 		if hs.isLocal || strings.HasPrefix(c.Request().URL.Path, "/.well-known/") {
-	// 			return true
-	// 		}
-	// 		return false
-	// 	},
-	// }))
 
 	hs.app.Use(ec_middleware.Secure())
 	hs.app.Use(ec_middleware.GzipWithConfig(ec_middleware.GzipConfig{
@@ -132,69 +119,9 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	return hs, nil
 }
 
-func WithOAuth2(oauthOpt OAuth2Option) Option {
-
-	return newFuncOption(func(hs *APIServer) error {
-		// sigKeySet, err := service.GetOIDCKeySet(oauthOpt.AuthServer)
-		// if err != nil {
-		// 	return fmt.Errorf("Couldn't get keyset: %v", err)
-		// }
-
-		// rsaJWTHandler := jwtmiddleware.New(jwtmiddleware.Config{
-		// 	ValidationKeyGetter: func(t *jwt.Token) (interface{}, error) {
-
-		// 		if t.Method.Alg() != "RS256" {
-		// 			return nil, fmt.Errorf("unexpected jwt signing method=%v", t.Header["alg"])
-		// 		}
-		// 		return sigKeySet[t.Header["kid"].(string)], nil
-
-		// 	},
-		// 	ContextKey:    "user-jwt",
-		// 	SigningMethod: jwt.SigningMethodRS256,
-		// })
-
-		// onRS256Pass := func(ctx irisCtx.Context, err error) {
-
-		// 	if err == nil || err.Error() == "unexpected jwt signing method=RS256" {
-		// 		return
-		// 	}
-		// 	jwtmiddleware.OnError(ctx, err)
-		// }
-		// hmacJWTHandler := jwtmiddleware.New(jwtmiddleware.Config{
-		// 	ValidationKeyGetter: func(t *jwt.Token) (interface{}, error) {
-
-		// 		if t.Method.Alg() != "HS256" {
-		// 			return nil, fmt.Errorf("unexpected jwt signing method=%v", t.Header["alg"])
-		// 		}
-		// 		return oauthOpt.ApiSecret, nil
-		// 	},
-		// 	ContextKey:    "service-jwt",
-		// 	SigningMethod: jwt.SigningMethodHS256,
-		// 	ErrorHandler:  onRS256Pass,
-		// })
-
-		// if len(oauthOpt.Issuer) == 0 {
-		// 	oauthOpt.Issuer = oauthOpt.AuthServer.String()
-		// }
-
-		// claimsHandler := claimsmiddleware.New(oauthOpt.Audience, oauthOpt.Issuer)
-
-		// auth := func(ctx irisCtx.Context) {
-		// 	hmacJWTHandler.Serve(ctx)
-		// 	serviceToken := ctx.Values().Get("service-jwt")
-		// 	if serviceToken == nil {
-		// 		rsaJWTHandler.Serve(ctx)
-		// 	}
-
-		// }
-		// hs.app.Use(auth)
-		// hs.app.Use(claimsHandler.Validate)
-		return nil
-	})
-}
-
 func (as *APIServer) registerEndpoints() {
 
+	// SPA
 	if as.serv.spa != nil {
 		s := as.serv.spa
 		as.app.Static("/", s.AppDir())
@@ -210,15 +137,12 @@ func (as *APIServer) registerEndpoints() {
 			return c.File(s.IndexPath)
 		})
 	}
-	// Info
-	as.app.Any("/info", controllers.Info)
-	// GQL
 
-	gql, err := controllers.InitGQL(as.devMode)
-	if err != nil {
-		log.Fatal(err)
+	// GQL
+	if as.serv.gql != nil {
+		handler := controllers.GQLHandler(as.serv.gql)
+		as.app.Any("/gql", echo.WrapHandler(handler()))
 	}
-	as.app.Any("/gql", echo.WrapHandler(gql.Handler()))
 
 }
 
@@ -323,6 +247,19 @@ func WithDevMode() Option {
 
 	return newFuncOption(func(hs *APIServer) (err error) {
 		hs.devMode = true
+		return
+	})
+}
+
+func WithGQL(devMode bool) Option {
+
+	return newFuncOption(func(as *APIServer) (err error) {
+
+		gql, err := services.InitGQL(devMode)
+		if err != nil {
+			return
+		}
+		as.serv.gql = gql
 		return
 	})
 }

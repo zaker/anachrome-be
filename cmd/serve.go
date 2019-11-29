@@ -22,16 +22,6 @@ var serveCmd = &cobra.Command{
 func createHTTPServerOptions() ([]servers.Option, error) {
 	opts := []servers.Option{servers.WithAPIVersion(config.Version)}
 
-	// if config.UseAuth() {
-	// 	opts = append(opts,
-	// 		servers.WithOAuth2(server.OAuth2Option{
-	// 			AuthServer: config.AuthServer(),
-	// 			Audience:   config.ResourceID(),
-	// 			Issuer:     config.Issuer(),
-	// 			ApiSecret:  []byte(config.ApiSecret()),
-	// 		}))
-	// }
-
 	if len(config.HostName()) > 0 {
 		opts = append(
 			opts,
@@ -52,6 +42,11 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			opts,
 			servers.WithHTTPOnly())
 	}
+
+	opts = append(
+		opts,
+		servers.WithGQL(config.RunDevMode()))
+
 	if config.RunDevMode() {
 		opts = append(
 			opts,
@@ -63,18 +58,6 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			opts,
 			servers.WithSPA(config.AppDir()))
 	}
-
-	// if config.UseLetsEncrypt() {
-	// 	opts = append(
-	// 		opts,
-	// 		servers.WithLetsEncrypt(config.DomainList(), config.DomainMail()))
-	// }
-
-	// if config.UseTLS() {
-	// 	opts = append(
-	// 		opts,
-	// 		servers.WithTLS(config.CertFile(), config.KeyFile()))
-	// }
 
 	return opts, nil
 }
