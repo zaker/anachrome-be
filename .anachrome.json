@@ -1,9 +1,10 @@
 {
     "DEVEL": "DEVEL",
     "HostName": "localhost",
-    "HTTP_PORT": 18080,
+    "HTTP_PORT": 8080,
     "HTTPS_PORT": 8443,
-    "AppDir": "../anachrome-fe/dist/",
+    "APP_DIR": "../anachrome-fe/dist/",
+    "TIDDLY_PATH": "../anachrome-tw/",
     "CERT_PATH": ".tmp/cert.pem",
     "KEY_PATH": ".tmp/key.pem"
 }

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/zaker/anachrome-be/stores"
+
 	"github.com/zaker/anachrome-be/controllers"
 	"github.com/zaker/anachrome-be/middleware"
 	"github.com/zaker/anachrome-be/services"
@@ -59,6 +61,7 @@ type APIServer struct {
 type APIService struct {
 	spa *services.SPA
 	gql *services.GQL
+	ts  *stores.TiddlerFileStore
 }
 type WebConfig struct {
 	Mode       serverMode
@@ -142,6 +145,17 @@ func (as *APIServer) registerEndpoints() {
 	if as.serv.gql != nil {
 		handler := controllers.GQLHandler(as.serv.gql)
 		as.app.Any("/gql", echo.WrapHandler(handler()))
+	}
+
+	// TW
+	if as.serv.ts != nil {
+		twCtl := &controllers.TW{Store: as.serv.ts}
+		as.app.Any("/tw", twCtl.Index)
+
+		as.app.GET("/status", twCtl.Status)
+		as.app.GET("/recipes/all/tiddlers.json", twCtl.List)
+		as.app.Any("/recipes/all/tiddlers/:id", twCtl.Tiddler)
+		as.app.DELETE("/bags/bag/tiddlers/:id", twCtl.Delete)
 	}
 
 }
@@ -260,6 +274,15 @@ func WithGQL(devMode bool) Option {
 			return
 		}
 		as.serv.gql = gql
+		return
+	})
+}
+
+func WithTW(filePath string) Option {
+
+	return newFuncOption(func(as *APIServer) (err error) {
+
+		as.serv.ts = &stores.TiddlerFileStore{BasePath: filePath}
 		return
 	})
 }

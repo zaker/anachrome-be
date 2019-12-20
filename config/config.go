@@ -34,7 +34,7 @@ func HostName() string {
 }
 
 func HTTPOnly() bool {
-	return false
+	return viper.GetBool("HTTP_ONLY")
 }
 
 // 	//HTTPPort redirects from here
@@ -57,6 +57,10 @@ func Cert() string {
 }
 func CertKey() string {
 	return viper.GetString("KEY_PATH")
+}
+
+func TWFile() string {
+	return viper.GetString("TIDDLY_PATH")
 }
 
 // 	//DebugSkipper

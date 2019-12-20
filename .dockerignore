@@ -1,0 +1,5 @@
+*.pem
+.tmp/
+anachrome-be.exe
+anachrome-be
+*~

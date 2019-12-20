@@ -59,6 +59,12 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			servers.WithSPA(config.AppDir()))
 	}
 
+	if len(config.TWFile()) > 0 {
+		opts = append(
+			opts,
+			servers.WithTW(config.TWFile()))
+	}
+
 	return opts, nil
 }
 
