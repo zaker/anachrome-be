@@ -8,6 +8,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -16,21 +18,48 @@ type TiddlerFileStore struct {
 }
 
 type Tiddler struct {
-	Rev  int
-	Meta string
-	Text string
+	Rev  int    `json:"rev"`
+	Meta string `json:"meta"`
+	Text string `json:"text"`
+}
+
+func TiddlerFromFile(t *Tiddler, file string) error {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal([]byte(data), &t)
+
 }
 
 func (ts *TiddlerFileStore) List(w io.Writer) error {
 
+	var files []string
+
+	err := filepath.Walk(ts.BasePath, func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) != ".tid.json" {
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		return nil
+	}
 	var buf bytes.Buffer
 	sep := ""
 	buf.WriteString("[")
-	for {
+	for _, f := range files {
 		var t Tiddler
-
+		err = TiddlerFromFile(&t, f)
+		if err != nil {
+			continue
+		}
 		if len(t.Meta) == 0 {
-			break
+			continue
 		}
 		meta := t.Meta
 
@@ -49,29 +78,67 @@ func (ts *TiddlerFileStore) List(w io.Writer) error {
 		}
 
 		buf.WriteString(sep)
-		// sep = ","
+		sep = ","
 		buf.WriteString(meta)
-		break
+
 	}
 	buf.WriteString("]")
-	_, err := w.Write(buf.Bytes())
+	_, err = w.Write(buf.Bytes())
 	return err
 }
 
 func (ts *TiddlerFileStore) Store(r io.Reader, id string) (string, error) {
-	k := GenKey(id)
+	tp := ts.tiddlerPath(id)
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return "", err
 	}
-
-	err = ioutil.WriteFile(ts.BasePath+"/tiddlers/"+k, data, 0644)
-
+	var js map[string]interface{}
+	err = json.Unmarshal(data, &js)
 	if err != nil {
 		return "", err
 	}
 
-	return fmt.Sprintf("\"bag/%s/%d:%x\"", id, 1, md5.Sum(data)), nil
+	js["bag"] = "bag"
+
+	rev := 1
+	var old Tiddler
+	if err := TiddlerFromFile(&old, tp); err == nil {
+		rev = old.Rev + 1
+	}
+	js["revision"] = rev
+
+	var t Tiddler
+	text, ok := js["text"].(string)
+	if ok {
+		t.Text = text
+	}
+	delete(js, "text")
+	t.Rev = rev
+	meta, err := json.Marshal(js)
+	if err != nil {
+
+		return "", err
+	}
+	t.Meta = string(meta)
+
+	tidContent, err := json.Marshal(t)
+	if err != nil {
+
+		return "", err
+	}
+	err = ioutil.WriteFile(tp, tidContent, 0644)
+	if err != nil {
+		return "", err
+	}
+
+	hp := ts.historyPath(id, t.Rev)
+	err = ioutil.WriteFile(hp, tidContent, 0644)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("\"bag/%s/%d:%x\"", id, 1, md5.Sum(tidContent)), nil
 }
 
 func (ts *TiddlerFileStore) Load(w io.Writer, id string) error {
@@ -113,4 +180,20 @@ func (ts *TiddlerFileStore) Delete() error {
 func GenKey(id string) string {
 
 	return fmt.Sprintf("%x.tid.json", md5.Sum([]byte(id)))
+}
+
+func (ts *TiddlerFileStore) tiddlerPath(id string) string {
+	return path.Join(
+		ts.BasePath,
+		"tiddlers",
+		fmt.Sprintf("%x.tid.json",
+			md5.Sum([]byte(id))))
+}
+
+func (ts *TiddlerFileStore) historyPath(id string, rev int) string {
+	return path.Join(
+		ts.BasePath,
+		"history",
+		fmt.Sprintf("%x_%d.tid.json",
+			md5.Sum([]byte(id)), rev))
 }
