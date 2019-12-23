@@ -78,8 +78,8 @@ func (tw *TW) Tiddler(c echo.Context) error {
 }
 
 func (tw *TW) Delete(c echo.Context) error {
-
-	err := tw.Store.Delete()
+	id := c.Param("id")
+	err := tw.Store.Delete(id)
 	if err != nil {
 		return err
 	}

@@ -34,20 +34,12 @@ func TiddlerFromFile(t *Tiddler, file string) error {
 
 func (ts *TiddlerFileStore) List(w io.Writer) error {
 
-	var files []string
-
-	err := filepath.Walk(ts.BasePath, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
-		}
-		if filepath.Ext(path) != ".tid.json" {
-			return nil
-		}
-		files = append(files, path)
-		return nil
-	})
+	files, err := filepath.Glob(path.Join(
+		ts.BasePath,
+		"tiddlers",
+		fmt.Sprintf("*.tid.json")))
 	if err != nil {
-		return nil
+		return err
 	}
 	var buf bytes.Buffer
 	sep := ""
@@ -138,17 +130,29 @@ func (ts *TiddlerFileStore) Store(r io.Reader, id string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("\"bag/%s/%d:%x\"", id, 1, md5.Sum(tidContent)), nil
+	return fmt.Sprintf("\"bag/%s/%d:%x\"", id, t.Rev, md5.Sum(data)), nil
 }
 
 func (ts *TiddlerFileStore) Load(w io.Writer, id string) error {
-	k := GenKey(id)
-	rc, err := os.Open(ts.BasePath + "/tiddlers/" + k)
+
+	var t Tiddler
+	err := TiddlerFromFile(&t, ts.tiddlerPath(id))
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
-	_, err = io.Copy(w, rc)
+	var js map[string]interface{}
+	err = json.Unmarshal([]byte(t.Meta), &js)
+	if err != nil {
+		return err
+	}
+	js["text"] = string(t.Text)
+	data, err := json.Marshal(js)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write(data)
+
 	return err
 }
 
@@ -171,8 +175,40 @@ func (ts *TiddlerFileStore) Status(w io.Writer) error {
 
 }
 
-func (ts *TiddlerFileStore) Delete() error {
+func (ts *TiddlerFileStore) Delete(id string) error {
 
+	tp := ts.tiddlerPath(id)
+	rc, err := os.Open(tp)
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+	data, err := ioutil.ReadAll(rc)
+	if err != nil {
+		return err
+	}
+	var t Tiddler
+	err = json.Unmarshal(data, &t)
+	if err != nil {
+		return err
+	}
+	t.Rev++
+	t.Meta = ""
+	t.Text = ""
+
+	data, err = json.Marshal(t)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(tp, data, 0644)
+	if err != nil {
+		return err
+	}
+	hp := ts.historyPath(id, t.Rev)
+	err = ioutil.WriteFile(hp, data, 0644)
+	if err != nil {
+		return err
+	}
 	return nil
 
 }
