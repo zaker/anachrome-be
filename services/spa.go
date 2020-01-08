@@ -15,10 +15,11 @@ type SPA struct {
 	IndexPath string
 
 	appDir string
+	apiUrl string
 }
 
 //New initializes SPA
-func NewSPA(appDir string) (*SPA, error) {
+func NewSPA(appDir string, apiUrl string) (*SPA, error) {
 
 	tmpIndex := ".tmp/index.html"
 	if _, err := os.Stat(".tmp"); os.IsNotExist(err) {
@@ -28,7 +29,7 @@ func NewSPA(appDir string) (*SPA, error) {
 		}
 	}
 	log.Println("Serving SPA from ", appDir)
-	return &SPA{[]string{}, tmpIndex, appDir}, nil
+	return &SPA{[]string{}, tmpIndex, appDir, apiUrl}, nil
 }
 
 func (s *SPA) AppDir() string {
@@ -62,6 +63,31 @@ func (s *SPA) addPushFiles(n *html.Node) {
 		s.addPushFiles(c)
 	}
 }
+func (s *SPA) setApiUrl(n *html.Node) {
+	if n.Type == html.ElementNode && (n.Data == "meta") {
+
+		hasApiAttr := false
+		for _, a := range n.Attr {
+			if a.Key == "property" && a.Val == "apiUrl" {
+
+				hasApiAttr = true
+			}
+		}
+		if hasApiAttr {
+			for _, a := range n.Attr {
+				if a.Key == "content" {
+					a.Val = s.apiUrl
+				}
+			}
+
+		}
+
+	}
+
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		s.setApiUrl(c)
+	}
+}
 
 //IndexParse creates an index.html from a set of angular app files and adds security headers
 func (s *SPA) IndexParse() {
@@ -82,6 +108,7 @@ func (s *SPA) IndexParse() {
 	}
 
 	s.addPushFiles(doc)
+	s.setApiUrl(doc)
 	err = html.Render(tmpIdx, doc)
 	if err != nil {
 		log.Fatal(err)

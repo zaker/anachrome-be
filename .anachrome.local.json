@@ -4,5 +4,6 @@
     "HTTP_PORT": 8080,
     "HTTPS_PORT": 8443,
     "HTTP_ONLY": true,
+    "APP_DIR": "../anachrome-fe/dist/",
     "TIDDLY_PATH": "../anachrome-tw/"
 }

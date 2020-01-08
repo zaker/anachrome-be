@@ -59,9 +59,10 @@ type APIServer struct {
 }
 
 type APIService struct {
-	spa *services.SPA
-	gql *services.GQL
-	ts  *stores.TiddlerFileStore
+	spa   *services.SPA
+	gql   *services.GQL
+	ts    *stores.TiddlerFileStore
+	authn *services.WebAuthN
 }
 type WebConfig struct {
 	Mode       serverMode
@@ -158,6 +159,19 @@ func (as *APIServer) registerEndpoints() {
 		as.app.DELETE("/bags/bag/tiddlers/:id", twCtl.Delete)
 	}
 
+	// WebAuthN
+	if as.serv.authn != nil {
+		authCtl := &controllers.Auth{
+			RPID:     "duo.com",
+			RPOrigin: "https://login.duo.com",
+		}
+		cAuth := as.app.Group("/auth")
+		cAuth.GET("/register", authCtl.BeginRegistration)
+		cAuth.POST("/register", authCtl.FinishRegistration)
+		cAuth.GET("/login", authCtl.BeginLogin)
+		cAuth.POST("/login", authCtl.FinishLogin)
+	}
+
 }
 
 func (as *APIServer) Serve() error {
@@ -225,7 +239,7 @@ func WithHTTPOnly() Option {
 func WithSPA(appDir string) Option {
 
 	return newFuncOption(func(hs *APIServer) (err error) {
-		hs.serv.spa, err = services.NewSPA(appDir)
+		hs.serv.spa, err = services.NewSPA(appDir, hs.hostAddr)
 		if err != nil {
 			return err
 		}
