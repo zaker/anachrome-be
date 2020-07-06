@@ -1,6 +1,0 @@
-{
-    "HostName": "anachro.me",
-    "HTTPPort": 80,
-    "HTTPSPort": 443,
-    "AppDir": "../anachrome-fe/dist/"
-}
