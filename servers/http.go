@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/zaker/anachrome-be/stores"
 
@@ -19,34 +18,6 @@ import (
 
 	// jwt "github.com/dgrijalva/jwt-go"
 	ec_middleware "github.com/labstack/echo/v4/middleware"
-)
-
-type serverMode int
-
-func (sm serverMode) String() string {
-	switch sm {
-	case NONE:
-		return "None"
-	case INSECURE:
-		return "Insecure"
-	case SELFSIGNED:
-		return "With selfsigned"
-	case SECURE:
-		return "Lets Encrypt"
-	case LETSENCRYPT:
-		return "Secure"
-	default:
-		return "Unknown"
-	}
-
-}
-
-const (
-	NONE serverMode = iota
-	INSECURE
-	SELFSIGNED
-	SECURE
-	LETSENCRYPT
 )
 
 type APIServer struct {
@@ -65,14 +36,8 @@ type APIService struct {
 	authn *services.WebAuthN
 }
 type WebConfig struct {
-	Mode       serverMode
-	HostName   string
-	HttpPort   int
-	HttpsPort  int
-	Cert       string
-	CertKey    string
-	domains    string
-	domainmail string
+	HostName string
+	HttpPort int
 }
 
 type Option interface {
@@ -162,14 +127,13 @@ func (as *APIServer) registerEndpoints() {
 	// WebAuthN
 	if as.serv.authn != nil {
 		authCtl := &controllers.Auth{
-			RPID:     "duo.com",
-			RPOrigin: "https://login.duo.com",
+			Service: as.serv.authn,
 		}
 		cAuth := as.app.Group("/auth")
-		cAuth.GET("/register", authCtl.BeginRegistration)
-		cAuth.POST("/register", authCtl.FinishRegistration)
-		cAuth.GET("/login", authCtl.BeginLogin)
-		cAuth.POST("/login", authCtl.FinishLogin)
+		cAuth.POST("/register-begin", authCtl.BeginRegistration)
+		cAuth.POST("/register-finish", authCtl.FinishRegistration)
+		cAuth.POST("/login-begin", authCtl.BeginLogin)
+		cAuth.POST("/login-finish", authCtl.FinishLogin)
 	}
 
 }
@@ -180,40 +144,15 @@ func (as *APIServer) Serve() error {
 
 	wc := as.wc
 	fmt.Println("webconf", wc)
-	switch wc.Mode {
-	case INSECURE:
-		return as.app.Start("localhost:" + strconv.Itoa(wc.HttpPort))
-	case SELFSIGNED:
-		return as.app.StartTLS(":"+strconv.Itoa(wc.HttpsPort), wc.Cert, wc.CertKey)
-	case LETSENCRYPT:
-		return as.app.StartAutoTLS(":" + strconv.Itoa(wc.HttpsPort))
-	case SECURE:
-		return as.app.StartTLS(":"+strconv.Itoa(wc.HttpsPort), wc.Cert, wc.CertKey)
-	default:
-		return fmt.Errorf("no http server mode chosen")
-	}
-}
 
-func modeSelect(wc WebConfig) serverMode {
-	m := INSECURE
-	if strings.HasPrefix(wc.HostName, "localhost") {
+	return as.app.Start(":" + strconv.Itoa(wc.HttpPort))
 
-		if wc.HttpsPort > 0 {
-			m = SELFSIGNED
-		}
-
-	} else {
-		m = SECURE
-	}
-	return m
 }
 
 func WithWebConfig(wc WebConfig) Option {
 
 	return newFuncOption(func(as *APIServer) (err error) {
-		if wc.Mode == NONE {
-			wc.Mode = modeSelect(wc)
-		}
+
 		as.wc = wc
 
 		return
@@ -224,14 +163,6 @@ func WithAPIVersion(version string) Option {
 
 	return newFuncOption(func(hs *APIServer) (err error) {
 		hs.version = version
-		return
-	})
-}
-
-func WithHTTPOnly() Option {
-
-	return newFuncOption(func(hs *APIServer) (err error) {
-		hs.wc.Mode = INSECURE
 		return
 	})
 }
@@ -300,37 +231,14 @@ func WithTW(filePath string) Option {
 		return
 	})
 }
-
-// func WithTLS(certFile, keyFile string) Option {
-
-// 	return newFuncOption(func(hs *APIServer) (err error) {
-
-// 		if len(certFile) == 0 {
-// 			return fmt.Errorf("No cert file selected for TLS")
-// 		}
-
-// 		if len(keyFile) == 0 {
-// 			return fmt.Errorf("No key file selected for TLS")
-// 		}
-// 		hs.chosenMode = SECURE
-// 		hs.certFile = certFile
-// 		hs.privKeyFile = keyFile
-// 		return
-// 	})
-// }
-func WithLetsEncrypt(domains, domainmail string) Option {
+func WithAuthN(authn *services.WebAuthN) Option {
 
 	return newFuncOption(func(hs *APIServer) (err error) {
-		if len(domains) == 0 {
-			return fmt.Errorf("No domains selected for LetsEncrypt")
+		if authn == nil {
+			return fmt.Errorf("Cannot set auth service to nil")
 		}
 
-		if len(domainmail) == 0 {
-			return fmt.Errorf("No domain mail selected for LetsEncrypt")
-		}
-		hs.wc.Mode = LETSENCRYPT
-		hs.wc.domains = domains
-		hs.wc.domainmail = domainmail
+		hs.serv.authn = authn
 		return
 	})
 }

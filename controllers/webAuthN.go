@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -13,10 +14,7 @@ import (
 )
 
 type Auth struct {
-	RPID     string
-	RPOrigin string
-	Service  *services.WebAuthN
-	web      *webauthn.WebAuthn
+	Service *services.WebAuthN
 }
 
 func (a *Auth) BeginRegistration(c echo.Context) error {
@@ -24,7 +22,7 @@ func (a *Auth) BeginRegistration(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	options, sessionData, err := a.web.BeginRegistration(user)
+	options, sessionData, err := a.Service.BeginRegistration(user)
 	if err != nil {
 		return err
 	}
@@ -37,14 +35,20 @@ func (a *Auth) BeginRegistration(c echo.Context) error {
 	}
 	cookie := &http.Cookie{
 		Name: "registration-session",
-
-		Value:   string(cValue),
-		Expires: time.Now().Add(1 * time.Hour),
+		// Domain:   c.Echo().Server.Addr,
+		Domain:   "localhost",
+		Path:     "/auth",
+		Value:    base64.StdEncoding.EncodeToString(cValue),
+		Expires:  time.Now().Add(12 * time.Hour),
+		MaxAge:   int((1 * time.Hour).Seconds()),
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
 	}
 	c.SetCookie(cookie)
-	c.JSON(http.StatusOK, options) // return the options generated
+	// return the options generated
 	// options.publicKey contain our registration options
-	return nil
+	return c.JSON(http.StatusOK, options)
 }
 
 func (a *Auth) FinishRegistration(c echo.Context) error {
@@ -58,22 +62,31 @@ func (a *Auth) FinishRegistration(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+	cValue, err := base64.StdEncoding.DecodeString(cookie.Value)
+	if err != nil {
+		return err
+	}
 	var sessionData webauthn.SessionData
-	err = json.Unmarshal([]byte(cookie.Value), &sessionData)
+	err = json.Unmarshal(cValue, &sessionData)
 	if err != nil {
 		return err
 	}
 
-	parsedResponse, err := protocol.ParseCredentialCreationResponseBody(c.Request().Body)
-	_, err = a.web.CreateCredential(user, sessionData, parsedResponse)
+	parsedResponse, err := protocol.ParseCredentialCreationResponse(c.Request())
+	if err != nil {
+		return err
+	}
+	cred, err := a.Service.CreateCredential(user, sessionData, parsedResponse)
 	// Handle validation or input errors
 	if err != nil {
 		return err
+	} else {
+		c.Logger().Print("New credential", cred)
 	}
 	// If creation was successful, store the credential object
 
-	c.JSON(http.StatusOK, "Registration Success") // Handle next steps
-	return nil
+	return c.JSON(http.StatusOK, "ok") // Handle next steps
+
 }
 
 func (a *Auth) BeginLogin(c echo.Context) error {
@@ -81,7 +94,7 @@ func (a *Auth) BeginLogin(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	options, sessionData, err := a.web.BeginLogin(user)
+	options, sessionData, err := a.Service.BeginLogin(user)
 	// handle errors if present
 	if err != nil {
 		return err
@@ -99,9 +112,9 @@ func (a *Auth) BeginLogin(c echo.Context) error {
 		Expires: time.Now().Add(1 * time.Hour),
 	}
 	c.SetCookie(cookie)
-	c.JSON(http.StatusOK, options) // return the options generated
+	return c.JSON(http.StatusOK, options) // return the options generated
 	// options.publicKey contain our registration options
-	return nil
+
 }
 
 func (a *Auth) FinishLogin(c echo.Context) error {
@@ -122,12 +135,15 @@ func (a *Auth) FinishLogin(c echo.Context) error {
 		return err
 	}
 	parsedResponse, err := protocol.ParseCredentialRequestResponseBody(c.Request().Body)
-	_, err = a.web.ValidateLogin(user, sessionData, parsedResponse)
+	if err != nil {
+		return err
+	}
+	_, err = a.Service.ValidateLogin(user, sessionData, parsedResponse)
 	// Handle validation or input errors
 	if err != nil {
 		return err
 	}
 	// If login was successful, handle next steps
-	c.JSON(http.StatusOK, "Login Success")
-	return nil
+	return c.JSON(http.StatusOK, "ok")
+
 }

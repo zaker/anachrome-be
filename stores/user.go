@@ -5,7 +5,11 @@ import (
 )
 
 type User struct {
-	id []byte
+	id          []byte
+	name        string
+	DisplayName string
+	Icon        string
+	Creds       []authn.Credential
 }
 
 type UserStore interface {
@@ -15,22 +19,31 @@ type UserStore interface {
 type UserFileStore struct {
 }
 
+func (us *UserFileStore) GetUser() (*User, error) {
+	return &User{
+		id:          []byte("1234"),
+		name:        "zaker",
+		DisplayName: "Zaker",
+		Creds:       []authn.Credential{},
+	}, nil
+}
+
 func (user *User) WebAuthnID() []byte {
 	return user.id
 }
 
 func (user *User) WebAuthnName() string {
-	return "newUser"
+	return user.name
 }
 
 func (user *User) WebAuthnDisplayName() string {
-	return "New User"
+	return user.DisplayName
 }
 
 func (user *User) WebAuthnIcon() string {
-	return "https://pics.com/avatar.png"
+	return user.Icon
 }
 
 func (user *User) WebAuthnCredentials() []authn.Credential {
-	return []authn.Credential{}
+	return user.Creds
 }

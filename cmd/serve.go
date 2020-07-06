@@ -5,11 +5,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/zaker/anachrome-be/config"
-	"github.com/zaker/anachrome-be/servers"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/zaker/anachrome-be/config"
+	"github.com/zaker/anachrome-be/servers"
+	"github.com/zaker/anachrome-be/services"
+	"github.com/zaker/anachrome-be/stores"
 )
 
 var serveCmd = &cobra.Command{
@@ -27,20 +28,11 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			opts,
 			servers.WithWebConfig(
 				servers.WebConfig{
-					HostName:  config.HostName(),
-					HttpPort:  config.HttpPort(),
-					HttpsPort: config.HttpsPort(),
-					Cert:      config.Cert(),
-					CertKey:   config.CertKey(),
+					HostName: config.HostName(),
+					HttpPort: config.HttpPort(),
 				}))
 	} else {
 		return opts, fmt.Errorf("No host name")
-	}
-
-	if config.HTTPOnly() {
-		opts = append(
-			opts,
-			servers.WithHTTPOnly())
 	}
 
 	opts = append(
@@ -64,7 +56,15 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			opts,
 			servers.WithTW(config.TWFile()))
 	}
-
+	authn, err := services.NewAuthN(
+		&stores.UserFileStore{},
+		&services.AuthNConfig{})
+	if err != nil {
+		return opts, err
+	}
+	opts = append(
+		opts,
+		servers.WithAuthN(authn))
 	return opts, nil
 }
 
