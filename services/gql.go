@@ -10,7 +10,7 @@ import (
 // GQL graphql setup for anachro.me
 type GQL struct {
 	conf      handler.Config
-	blobStore *stores.BlobStore
+	blogStore stores.BlogStore
 }
 
 func getBlogType() *graphql.Object {
@@ -66,9 +66,9 @@ func getBlogType() *graphql.Object {
 }
 
 // InitGQL initializes components
-func InitGQL(isDevMode bool) (*GQL, error) {
+func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 
-	gql := new(GQL)
+	gql := &GQL{blogStore: blogStore}
 
 	mockPosts := make([]stores.BlogPost, 0)
 	mockPosts = append(mockPosts, stores.BlogPost{Title: "foo", Content: "blabla"})
@@ -84,8 +84,11 @@ func InitGQL(isDevMode bool) (*GQL, error) {
 		"blogs": &graphql.Field{
 			Type: graphql.NewList(getBlogType()),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-
-				return mockPosts, nil
+				posts, err := gql.blogStore.GetBlogPosts()
+				if err != nil {
+					return nil, err
+				}
+				return posts, nil
 			},
 		},
 	}

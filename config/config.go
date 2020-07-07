@@ -19,13 +19,8 @@ func HttpPort() int {
 	return viper.GetInt("HTTP_PORT")
 }
 
-// 	//AppDir path to SPA
-func AppDir() string {
-	return viper.GetString("APP_DIR")
-}
-
-func TWFile() string {
-	return viper.GetString("TIDDLY_PATH")
+func DropboxKey() string {
+	return viper.GetString("DROPBOX_KEY")
 }
 
 // 	//DebugSkipper

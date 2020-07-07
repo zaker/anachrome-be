@@ -32,12 +32,12 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 					HttpPort: config.HttpPort(),
 				}))
 	} else {
-		return opts, fmt.Errorf("No host name")
+		return opts, fmt.Errorf("Cannot create server without hostname")
 	}
 
 	opts = append(
 		opts,
-		servers.WithGQL(config.RunDevMode()))
+		servers.WithGQL(config.RunDevMode(), stores.NewDropboxBlogStore(config.DropboxKey())))
 
 	if config.RunDevMode() {
 		opts = append(
@@ -45,17 +45,6 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			servers.WithDevMode())
 	}
 
-	if len(config.AppDir()) > 0 {
-		opts = append(
-			opts,
-			servers.WithSPA(config.AppDir()))
-	}
-
-	if len(config.TWFile()) > 0 {
-		opts = append(
-			opts,
-			servers.WithTW(config.TWFile()))
-	}
 	authn, err := services.NewAuthN(
 		&stores.UserFileStore{},
 		&services.AuthNConfig{})

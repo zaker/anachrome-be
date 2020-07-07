@@ -32,7 +32,7 @@ type APIServer struct {
 type APIService struct {
 	spa   *services.SPA
 	gql   *services.GQL
-	ts    *stores.TiddlerFileStore
+	bs    stores.BlogStore
 	authn *services.WebAuthN
 }
 type WebConfig struct {
@@ -111,17 +111,6 @@ func (as *APIServer) registerEndpoints() {
 	if as.serv.gql != nil {
 		handler := controllers.GQLHandler(as.serv.gql)
 		as.app.Any("/gql", echo.WrapHandler(handler()))
-	}
-
-	// TW
-	if as.serv.ts != nil {
-		twCtl := &controllers.TW{Store: as.serv.ts}
-		as.app.Any("/tw", twCtl.Index)
-
-		as.app.GET("/status", twCtl.Status)
-		as.app.GET("/recipes/all/tiddlers.json", twCtl.List)
-		as.app.Any("/recipes/all/tiddlers/:id", twCtl.Tiddler)
-		as.app.DELETE("/bags/bag/tiddlers/:id", twCtl.Delete)
 	}
 
 	// WebAuthN
@@ -210,11 +199,11 @@ func WithDevMode() Option {
 	})
 }
 
-func WithGQL(devMode bool) Option {
+func WithGQL(devMode bool, blogStore stores.BlogStore) Option {
 
 	return newFuncOption(func(as *APIServer) (err error) {
 
-		gql, err := services.InitGQL(devMode)
+		gql, err := services.InitGQL(devMode, blogStore)
 		if err != nil {
 			return
 		}
@@ -223,11 +212,11 @@ func WithGQL(devMode bool) Option {
 	})
 }
 
-func WithTW(filePath string) Option {
+func WithBlogStore(blogStore stores.BlogStore) Option {
 
 	return newFuncOption(func(as *APIServer) (err error) {
 
-		as.serv.ts = &stores.TiddlerFileStore{BasePath: filePath}
+		as.serv.bs = blogStore
 		return
 	})
 }
