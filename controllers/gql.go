@@ -5,11 +5,10 @@ import (
 	"github.com/zaker/anachrome-be/services"
 )
 
-// Handler returns handler
+// GQLHandler returns a gql query handler
 func GQLHandler(gql *services.GQL) func() *handler.Handler {
+	gqlh := handler.New(gql.Conf())
 	return func() *handler.Handler {
-
-		gqlh := handler.New(gql.Conf())
 
 		return gqlh
 	}
