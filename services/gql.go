@@ -18,6 +18,10 @@ func getBlogType() *graphql.Object {
 	blogInterface := graphql.NewInterface(graphql.InterfaceConfig{
 		Name: "Blogpost",
 		Fields: graphql.Fields{
+			"path": &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.String),
+				Description: "The title of the post.",
+			},
 			"title": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "The title of the post.",
@@ -36,6 +40,16 @@ func getBlogType() *graphql.Object {
 		Name:        "BlogPost",
 		Description: "A blob with some textual content",
 		Fields: graphql.Fields{
+			"path": &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.String),
+				Description: "The path to the post.",
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					if blog, ok := p.Source.(stores.BlogPost); ok {
+						return blog.Path, nil
+					}
+					return nil, nil
+				},
+			},
 			"title": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "The title of the post.",
@@ -70,25 +84,40 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 
 	gql := &GQL{blogStore: blogStore}
 
-	mockPosts := make([]stores.BlogPost, 0)
-	mockPosts = append(mockPosts, stores.BlogPost{Title: "foo", Content: "blabla"})
-	mockPosts = append(mockPosts, stores.BlogPost{Title: "bar", Content: "bliblo"})
+	blogType := getBlogType()
 	// Schema
 	fields := graphql.Fields{
 		"hello": &graphql.Field{
-			Type: graphql.String,
+			Type: graphql.NewNonNull(graphql.String),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				return "world", nil
 			},
 		},
 		"blogs": &graphql.Field{
-			Type: graphql.NewList(getBlogType()),
+			Type: graphql.NewList(blogType),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 				posts, err := gql.blogStore.GetBlogPosts()
 				if err != nil {
 					return nil, err
 				}
 				return posts, nil
+			},
+		},
+
+		"blog": &graphql.Field{
+			Type: blogType,
+			Args: graphql.FieldConfigArgument{
+				"path": &graphql.ArgumentConfig{
+					Description: "Path of the blog post",
+					Type:        graphql.NewNonNull(graphql.String),
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				post, err := gql.blogStore.GetBlogPost(p.Args["path"].(string))
+				if err != nil {
+					return nil, err
+				}
+				return post, nil
 			},
 		},
 	}

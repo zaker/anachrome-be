@@ -2,5 +2,6 @@
 .tmp/
 anachrome-be.exe
 anachrome-be
+__debug_bin
 *~
 .env
