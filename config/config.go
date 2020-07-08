@@ -22,6 +22,3 @@ func HttpPort() int {
 func DropboxKey() string {
 	return viper.GetString("DROPBOX_KEY")
 }
-
-// 	//DebugSkipper
-// func 	DebugSkipper func(echo.Context) bool

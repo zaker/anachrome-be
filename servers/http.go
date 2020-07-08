@@ -2,9 +2,6 @@ package servers
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-	"path/filepath"
 	"strconv"
 
 	"github.com/zaker/anachrome-be/stores"
@@ -14,7 +11,6 @@ import (
 	"github.com/zaker/anachrome-be/services"
 
 	"github.com/labstack/echo/v4"
-	"github.com/rjeczalik/notify"
 
 	// jwt "github.com/dgrijalva/jwt-go"
 	ec_middleware "github.com/labstack/echo/v4/middleware"
@@ -30,7 +26,6 @@ type APIServer struct {
 }
 
 type APIService struct {
-	spa   *services.SPA
 	gql   *services.GQL
 	bs    stores.BlogStore
 	authn *services.WebAuthN
@@ -62,8 +57,6 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	}
 	hs.app.Pre(ec_middleware.RemoveTrailingSlash())
 
-	services.GenerateCert(hs.hostAddr)
-
 	hs.app.Use(ec_middleware.BodyLimit("2M"))
 	if !hs.devMode {
 
@@ -89,23 +82,6 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 }
 
 func (as *APIServer) registerEndpoints() {
-
-	// SPA
-	if as.serv.spa != nil {
-		s := as.serv.spa
-		as.app.Static("/", s.AppDir())
-		as.app.GET("/", func(c echo.Context) (err error) {
-			pusher, ok := c.Response().Writer.(http.Pusher)
-			if ok {
-				for _, f := range s.PushFiles {
-					if err = pusher.Push(f, nil); err != nil {
-						return
-					}
-				}
-			}
-			return c.File(s.IndexPath)
-		})
-	}
 
 	// GQL
 	if as.serv.gql != nil {
@@ -152,41 +128,6 @@ func WithAPIVersion(version string) Option {
 
 	return newFuncOption(func(hs *APIServer) (err error) {
 		hs.version = version
-		return
-	})
-}
-
-func WithSPA(appDir string) Option {
-
-	return newFuncOption(func(hs *APIServer) (err error) {
-		hs.serv.spa, err = services.NewSPA(appDir, hs.hostAddr)
-		if err != nil {
-			return err
-		}
-		absPath, err := filepath.Abs(appDir)
-		if err != nil {
-			return err
-		}
-		c := make(chan notify.EventInfo, 1)
-		if err := notify.Watch(absPath[:len(absPath)-5]+"/...", c, notify.Create|notify.Write); err != nil {
-			return err
-		}
-		defer notify.Stop(c)
-		go func() {
-			for ei := range c {
-				dirPath, fileName := filepath.Split(ei.Path())
-				basePath := filepath.Base(dirPath)
-
-				if basePath == "dist" && fileName == "index.html" {
-					log.Println("Hit")
-					go hs.serv.spa.IndexParse()
-				}
-				//
-			}
-
-		}()
-
-		hs.serv.spa.IndexParse()
 		return
 	})
 }
