@@ -128,10 +128,10 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 		return nil, err
 	}
 	gql.conf = handler.Config{
-		Schema:     &schema,
-		Pretty:     isDevMode,
-		GraphiQL:   false,
-		Playground: isDevMode,
+		Schema:   &schema,
+		Pretty:   isDevMode,
+		GraphiQL: isDevMode,
+		// Playground: isDevMode,
 	}
 	return gql, nil
 }
