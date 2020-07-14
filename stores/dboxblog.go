@@ -3,9 +3,13 @@ package stores
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
+	"strings"
+	"time"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/dropbox/files"
+	"gopkg.in/yaml.v2"
 )
 
 type BlogStore interface {
@@ -14,21 +18,27 @@ type BlogStore interface {
 }
 
 type DropboxBlog struct {
-	path string
-	// conf *dropbox.Config
+	path   string
 	client files.Client
 }
 
 type BlogPost struct {
-	Path    string
-	Title   string
-	Content string
+	Path      string
+	Title     string
+	Content   string
+	Published time.Time
+	Updated   time.Time
+}
+
+type ContentMeta struct {
+	Title     string    `yaml:"title"`
+	Published time.Time `yaml:"date"`
 }
 
 type BlogPosts []BlogPost
 
 func getFileMetadata(c files.Client, path string) (files.IsMetadata, error) {
-	arg := files.NewGetMetadataArg(path)
+	arg := files.NewGetMetadataArg("/" + path + ".md")
 
 	res, err := c.GetMetadata(arg)
 	if err != nil {
@@ -84,7 +94,7 @@ func (dbx *DropboxBlog) GetBlogPosts() ([]BlogPost, error) {
 		switch f := entry.(type) {
 		case *files.FileMetadata:
 			fmt.Println("File:", i, f)
-			blogs = append(blogs, BlogPost{Path: f.PathLower, Title: f.Name})
+			blogs = append(blogs, BlogPost{Path: trimDbxPath(f.PathLower), Title: f.Name})
 		case *files.FolderMetadata:
 			fmt.Println("Folder:", i, f)
 		default:
@@ -98,8 +108,38 @@ func (dbx *DropboxBlog) GetBlogPosts() ([]BlogPost, error) {
 
 }
 
-func (dbx *DropboxBlog) GetBlogPost(path string) (BlogPost, error) {
+func trimDbxPath(dbxPath string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(dbxPath, "/"), ".md")
+}
 
+func setContentMeta(blogPost *BlogPost, content []byte) {
+	contentString := string(content)
+	if contentString[:4] != "---\n" {
+		log.Printf("no metadata found\n")
+		return
+	}
+
+	idx := strings.Index(contentString[4:], "---")
+	if idx == -1 {
+		log.Printf("no metadata found\n")
+		return
+	}
+	var c ContentMeta
+
+	data := contentString[4 : idx+4]
+	err := yaml.Unmarshal([]byte(data), &c)
+	if err != nil {
+		log.Printf("cannot unmarshal data: %v\n", err)
+		return
+	}
+	blogPost.Title = c.Title
+	blogPost.Content = strings.TrimSpace(contentString[idx+4+3+1:])
+	blogPost.Published = c.Published
+
+}
+
+func (dbx *DropboxBlog) GetBlogPost(qPath string) (BlogPost, error) {
+	path := "/" + qPath + ".md"
 	blogPost := BlogPost{}
 	arg := files.NewDownloadArg(path)
 
@@ -122,9 +162,11 @@ func (dbx *DropboxBlog) GetBlogPost(path string) (BlogPost, error) {
 		if err != nil {
 			return blogPost, err
 		}
-		blogPost.Path = filemeta.PathLower
-		blogPost.Title = filemeta.Name
-		blogPost.Content = string(content)
+		blogPost.Path = trimDbxPath(filemeta.PathLower)
+
+		setContentMeta(&blogPost, content)
+		blogPost.Updated = filemeta.ClientModified
+
 	}
 
 	return blogPost, nil

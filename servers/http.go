@@ -17,22 +17,22 @@ import (
 )
 
 type APIServer struct {
-	serv     APIService
+	serv     Services
 	app      *echo.Echo
 	wc       WebConfig
 	version  string
 	hostAddr string
-	devMode  bool
 }
 
-type APIService struct {
-	gql   *services.GQL
-	bs    stores.BlogStore
-	authn *services.WebAuthN
+type Services struct {
+	blogStore stores.BlogStore
+	authn     *services.WebAuthN
 }
 type WebConfig struct {
-	HostName string
-	HttpPort int
+	HostName  string
+	HTTPPort  int
+	enableGQL bool
+	devMode   bool
 }
 
 type Option interface {
@@ -58,7 +58,7 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	hs.app.Pre(ec_middleware.RemoveTrailingSlash())
 
 	hs.app.Use(ec_middleware.BodyLimit("2M"))
-	if !hs.devMode {
+	if !hs.wc.devMode {
 
 		hs.app.Use(ec_middleware.CSRF())
 	}
@@ -72,7 +72,7 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	hs.app.Use(ec_middleware.Recover())
 	hs.app.Use(ec_middleware.Logger())
 	hs.app.Use(middleware.MIME())
-	if !hs.devMode {
+	if !hs.wc.devMode {
 
 		hs.app.Use(middleware.CSP())
 		hs.app.Use(middleware.HSTS())
@@ -83,9 +83,20 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 
 func (as *APIServer) registerEndpoints() {
 
+	// Blog
+
+	blogCotroller := controllers.NewBlog(as.serv.blogStore, as.wc.HostName)
+	as.app.GET("/blog", blogCotroller.ListBlogPosts)
+	as.app.GET("/blog/:path", blogCotroller.GetBlogPost).Name = "BlogPost"
+
 	// GQL
-	if as.serv.gql != nil {
-		handler := controllers.GQLHandler(as.serv.gql)
+	if as.wc.enableGQL {
+		gql, err := services.InitGQL(as.wc.devMode, as.serv.blogStore)
+		if err != nil {
+			return
+		}
+
+		handler := controllers.GQLHandler(gql)
 		as.app.Any("/gql", echo.WrapHandler(handler()))
 	}
 
@@ -110,7 +121,13 @@ func (as *APIServer) Serve() error {
 	wc := as.wc
 	fmt.Println("webconf", wc)
 
-	return as.app.Start(":" + strconv.Itoa(wc.HttpPort))
+	return as.app.Start(":" + strconv.Itoa(wc.HTTPPort))
+
+}
+
+func (as *APIServer) BaseAddr() string {
+
+	return as.wc.HostName
 
 }
 
@@ -135,20 +152,17 @@ func WithAPIVersion(version string) Option {
 func WithDevMode() Option {
 
 	return newFuncOption(func(hs *APIServer) (err error) {
-		hs.devMode = true
+		hs.wc.devMode = true
 		return
 	})
 }
 
-func WithGQL(devMode bool, blogStore stores.BlogStore) Option {
+func WithGQL() Option {
 
 	return newFuncOption(func(as *APIServer) (err error) {
 
-		gql, err := services.InitGQL(devMode, blogStore)
-		if err != nil {
-			return
-		}
-		as.serv.gql = gql
+		as.wc.enableGQL = true
+
 		return
 	})
 }
@@ -157,7 +171,7 @@ func WithBlogStore(blogStore stores.BlogStore) Option {
 
 	return newFuncOption(func(as *APIServer) (err error) {
 
-		as.serv.bs = blogStore
+		as.serv.blogStore = blogStore
 		return
 	})
 }

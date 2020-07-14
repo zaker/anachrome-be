@@ -29,15 +29,18 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			servers.WithWebConfig(
 				servers.WebConfig{
 					HostName: config.HostName(),
-					HttpPort: config.HttpPort(),
+					HTTPPort: config.HTTPPort(),
 				}))
 	} else {
 		return opts, fmt.Errorf("Cannot create server without hostname")
 	}
+	opts = append(
+		opts,
+		servers.WithBlogStore(stores.NewDropboxBlogStore(config.DropboxKey())))
 
 	opts = append(
 		opts,
-		servers.WithGQL(config.RunDevMode(), stores.NewDropboxBlogStore(config.DropboxKey())))
+		servers.WithGQL())
 
 	if config.RunDevMode() {
 		opts = append(
