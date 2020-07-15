@@ -13,10 +13,10 @@ type GQL struct {
 	blogStore stores.BlogStore
 }
 
-func getBlogType() *graphql.Object {
-	var blogType *graphql.Object
+func getBlogMetaType() *graphql.Object {
+	var blogPostMetaType *graphql.Object
 	blogInterface := graphql.NewInterface(graphql.InterfaceConfig{
-		Name: "BlogPost",
+		Name: "BlogPostMetaInterface",
 		Fields: graphql.Fields{
 			"path": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
@@ -26,10 +26,10 @@ func getBlogType() *graphql.Object {
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "The title of the post.",
 			},
-			"content": &graphql.Field{
-				Type:        graphql.String,
-				Description: "The content of the post.",
-			},
+			// "content": &graphql.Field{
+			// 	Type:        graphql.String,
+			// 	Description: "The content of the post.",
+			// },
 			"published": &graphql.Field{
 				Type:        graphql.DateTime,
 				Description: "The date first published.",
@@ -41,29 +41,78 @@ func getBlogType() *graphql.Object {
 		},
 		ResolveType: func(p graphql.ResolveTypeParams) *graphql.Object {
 
-			return blogType
+			return blogPostMetaType
 		},
 	})
-	blogType = graphql.NewObject(graphql.ObjectConfig{
-		Name:        "FullBlogPost",
+	blogPostMetaType = graphql.NewObject(graphql.ObjectConfig{
+		Name:        "BlogPostMeta",
 		Description: "A blob with some textual content",
 		Fields: graphql.Fields{
 			"path": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "The path to the post.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if blog, ok := p.Source.(stores.BlogPost); ok {
-						return blog.Path, nil
+					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
+						return meta.Path, nil
 					}
-					return nil, nil
+					return "", nil
 				},
 			},
 			"title": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "The title of the post.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
+						return meta.Title, nil
+					}
+					return nil, nil
+				},
+			},
+			"published": &graphql.Field{
+				Type:        graphql.DateTime,
+				Description: "The date first published.",
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
+						return meta.Published, nil
+					}
+					return nil, nil
+				},
+			},
+			"updated": &graphql.Field{
+				Type:        graphql.DateTime,
+				Description: "The date last updated.",
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
+						return meta.Updated, nil
+					}
+					return nil, nil
+				},
+			},
+		},
+		Interfaces: []*graphql.Interface{
+			blogInterface,
+		},
+	})
+
+	return blogPostMetaType
+}
+
+// InitGQL initializes components
+func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
+
+	gql := &GQL{blogStore: blogStore}
+
+	blogMetaType := getBlogMetaType()
+	blogType := graphql.NewObject(graphql.ObjectConfig{
+		Name:        "BlogPost",
+		Description: "A blob with some textual content",
+		Fields: graphql.Fields{
+			"meta": &graphql.Field{
+				Type:        graphql.NewNonNull(blogMetaType),
+				Description: "The path to the post.",
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					if blog, ok := p.Source.(stores.BlogPost); ok {
-						return blog.Title, nil
+						return blog.Meta.Path, nil
 					}
 					return nil, nil
 				},
@@ -78,41 +127,8 @@ func getBlogType() *graphql.Object {
 					return nil, nil
 				},
 			},
-			"published": &graphql.Field{
-				Type:        graphql.DateTime,
-				Description: "The date first published.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if blog, ok := p.Source.(stores.BlogPost); ok {
-						return blog.Published, nil
-					}
-					return nil, nil
-				},
-			},
-			"updated": &graphql.Field{
-				Type:        graphql.DateTime,
-				Description: "The date last updated.",
-				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if blog, ok := p.Source.(stores.BlogPost); ok {
-						return blog.Updated, nil
-					}
-					return nil, nil
-				},
-			},
-		},
-		Interfaces: []*graphql.Interface{
-			blogInterface,
 		},
 	})
-
-	return blogType
-}
-
-// InitGQL initializes components
-func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
-
-	gql := &GQL{blogStore: blogStore}
-
-	blogType := getBlogType()
 	// Schema
 	fields := graphql.Fields{
 		"hello": &graphql.Field{
@@ -122,9 +138,9 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 			},
 		},
 		"blogs": &graphql.Field{
-			Type: graphql.NewList(blogType),
+			Type: graphql.NewList(blogMetaType),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				posts, err := gql.blogStore.GetBlogPosts()
+				posts, err := gql.blogStore.GetBlogPostsMeta()
 				if err != nil {
 					return nil, err
 				}

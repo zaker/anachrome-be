@@ -81,7 +81,7 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	return hs, nil
 }
 
-func (as *APIServer) registerEndpoints() {
+func (as *APIServer) registerEndpoints() error {
 
 	// Blog
 
@@ -93,7 +93,7 @@ func (as *APIServer) registerEndpoints() {
 	if as.wc.enableGQL {
 		gql, err := services.InitGQL(as.wc.devMode, as.serv.blogStore)
 		if err != nil {
-			return
+			return err
 		}
 
 		handler := controllers.GQLHandler(gql)
@@ -111,13 +111,15 @@ func (as *APIServer) registerEndpoints() {
 		cAuth.POST("/login-begin", authCtl.BeginLogin)
 		cAuth.POST("/login-finish", authCtl.FinishLogin)
 	}
-
+	return nil
 }
 
 func (as *APIServer) Serve() error {
 
-	as.registerEndpoints()
-
+	err := as.registerEndpoints()
+	if err != nil {
+		return err
+	}
 	wc := as.wc
 	fmt.Println("webconf", wc)
 
