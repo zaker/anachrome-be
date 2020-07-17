@@ -18,9 +18,9 @@ func getBlogMetaType() *graphql.Object {
 	blogInterface := graphql.NewInterface(graphql.InterfaceConfig{
 		Name: "BlogPostMetaInterface",
 		Fields: graphql.Fields{
-			"path": &graphql.Field{
+			"id": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
-				Description: "The title of the post.",
+				Description: "The id of the post.",
 			},
 			"title": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
@@ -48,12 +48,12 @@ func getBlogMetaType() *graphql.Object {
 		Name:        "BlogPostMeta",
 		Description: "A blob with some textual content",
 		Fields: graphql.Fields{
-			"path": &graphql.Field{
+			"id": &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.String),
-				Description: "The path to the post.",
+				Description: "The id of the post.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
-						return meta.Path, nil
+						return meta.ID, nil
 					}
 					return "", nil
 				},
@@ -151,13 +151,13 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 		"blog": &graphql.Field{
 			Type: blogType,
 			Args: graphql.FieldConfigArgument{
-				"path": &graphql.ArgumentConfig{
-					Description: "Path of the blog post",
+				"id": &graphql.ArgumentConfig{
+					Description: "id of the blog post",
 					Type:        graphql.NewNonNull(graphql.String),
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				post, err := gql.blogStore.GetBlogPost(p.Args["path"].(string))
+				post, err := gql.blogStore.GetBlogPost(p.Args["id"].(string))
 				if err != nil {
 					return nil, err
 				}

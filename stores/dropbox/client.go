@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -311,4 +312,10 @@ func (c *Client) GetFileContent(id string) ([]byte, *EntryMetadata, error) {
 		return nil, nil, fmt.Errorf("Reading file content: %w", err)
 	}
 	return content, &meta, nil
+}
+
+func (c *Client) GetID(entry EntryMetadata) string {
+	id := strings.TrimPrefix(entry.PathLower, c.basePath+"/")
+	id = strings.TrimSuffix(id, ".md")
+	return id
 }

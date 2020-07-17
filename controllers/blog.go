@@ -12,26 +12,38 @@ type Blog struct {
 	basePath string
 }
 
+type BlogPostMeta struct {
+	stores.BlogPostMeta
+	Path string `json:"path"`
+}
+
 func NewBlog(blogs stores.BlogStore, basePath string) *Blog {
 	return &Blog{blogs, basePath}
 }
 
 func (b *Blog) ListBlogPosts(c echo.Context) error {
 
+	blogPosts := make([]BlogPostMeta, 0)
 	bpm, err := b.blogs.GetBlogPostsMeta()
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, bpm)
+	for _, bpmEnt := range bpm {
+		bm := BlogPostMeta{BlogPostMeta: bpmEnt,
+			Path: b.basePath + "/blog/" + bpmEnt.ID}
+		blogPosts = append(blogPosts, bm)
+	}
+
+	return c.JSON(http.StatusOK, blogPosts)
 }
 
 func (b *Blog) GetBlogPost(c echo.Context) error {
-	path := c.Param("path")
-	if len(path) == 0 {
-		return c.JSON(http.StatusNotFound, path)
+	id := c.Param("id")
+	if len(id) == 0 {
+		return c.JSON(http.StatusNotFound, id)
 	}
-	post, err := b.blogs.GetBlogPost(path)
+	post, err := b.blogs.GetBlogPost(id)
 	if err != nil {
 		return err
 	}

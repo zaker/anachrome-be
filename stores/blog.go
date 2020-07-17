@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	mydbx "github.com/zaker/anachrome-be/stores/dropbox"
+	"github.com/zaker/anachrome-be/stores/dropbox"
 	"gopkg.in/yaml.v2"
 )
 
@@ -16,14 +16,12 @@ type BlogStore interface {
 }
 
 type DropboxBlog struct {
-	path        string
-	myDbxClient *mydbx.Client
-	ticker      *time.Ticker
+	client *dropbox.Client
 }
 
 type BlogPostMeta struct {
 	Title     string     `json:"title,omitempty"`
-	Path      string     `json:"path,omitempty"`
+	ID        string     `json:"id,omitempty"`
 	Published *time.Time `json:"published,omitempty"`
 	Updated   *time.Time `json:"updated,omitempty"`
 }
@@ -41,9 +39,9 @@ type ContentMeta struct {
 func (dbx *DropboxBlog) updateFileMetadata() {
 
 	doneChan := make(chan struct{})
-	entriesChan := make(chan mydbx.EntryMetadata)
+	entriesChan := make(chan dropbox.EntryMetadata)
 	go func() {
-		err := dbx.myDbxClient.SubscribeMainFolder(entriesChan, doneChan)
+		err := dbx.client.SubscribeMainFolder(entriesChan, doneChan)
 		if err != nil {
 			log.Println("subscribing to metadata failed", err)
 		}
@@ -51,14 +49,18 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 
 	for ent := range entriesChan {
 
-		am, err := dbx.myDbxClient.AnachromeMeta(ent)
+		am, err := dbx.client.AnachromeMeta(ent)
 		if err != nil {
 			log.Println("getting anachrome meta failed", err)
 			continue
 		}
 		if ent.ContentHash != am.Hash {
-			log.Println("Needs update", ent)
-			content, _, err := dbx.myDbxClient.GetFileContent(ent.PathLower)
+			id := dbx.client.GetID(ent)
+			if err != nil {
+				log.Println("getting file content", err)
+				continue
+			}
+			content, _, err := dbx.client.GetFileContent(id)
 			if err != nil {
 				log.Println("getting file content", err)
 				continue
@@ -73,7 +75,7 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 			am.Published = meta.Published
 			am.Hash = ent.ContentHash
 
-			err = dbx.myDbxClient.UpdateEntryProperties(ent, am)
+			err = dbx.client.UpdateEntryProperties(ent, am)
 			if err != nil {
 				log.Println("updating anachrome meta", err)
 				continue
@@ -86,12 +88,10 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 // NewDropboxBlogStore creates a dropbox blog store and initializes a syncing client
 func NewDropboxBlogStore(key, basePath, metadataID string) *DropboxBlog {
 
-	myDbxClient := mydbx.NewClient(key, basePath, metadataID)
+	client := dropbox.NewClient(key, basePath, metadataID)
 
 	dbxBlog := &DropboxBlog{
-		path:        "",
-		myDbxClient: myDbxClient,
-		ticker:      time.NewTicker(time.Second)}
+		client: client}
 	go dbxBlog.updateFileMetadata()
 	return dbxBlog
 }
@@ -99,22 +99,25 @@ func NewDropboxBlogStore(key, basePath, metadataID string) *DropboxBlog {
 // GetBlogPostsMeta lists files metadata
 func (dbx *DropboxBlog) GetBlogPostsMeta() ([]BlogPostMeta, error) {
 	meta := make([]BlogPostMeta, 0)
-	folder, err := dbx.myDbxClient.ListMainFolder()
+	folder, err := dbx.client.ListMainFolder()
 
 	if err != nil {
 		return nil, err
 	}
 	for _, ent := range folder.Entries {
 
-		am, err := dbx.myDbxClient.AnachromeMeta(ent)
+		am, err := dbx.client.AnachromeMeta(ent)
 		if err != nil {
 			return nil, err
+		}
+		if am.Published.Sub(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Hours() < 0 {
+			continue
 		}
 
 		meta = append(meta, BlogPostMeta{
 			Title:     am.Title,
 			Published: am.Published,
-			Path:      ent.PathLower,
+			ID:        dbx.client.GetID(ent),
 			Updated:   &ent.ClientModified,
 		})
 	}
@@ -122,11 +125,7 @@ func (dbx *DropboxBlog) GetBlogPostsMeta() ([]BlogPostMeta, error) {
 
 }
 
-func trimDbxPath(dbxPath string) string {
-	return strings.TrimSuffix(strings.TrimPrefix(dbxPath, "/"), ".md")
-}
-
-func readAnachromeMetaFromContent(content []byte) (*mydbx.AnachromeMeta, int, error) {
+func readAnachromeMetaFromContent(content []byte) (*dropbox.AnachromeMeta, int, error) {
 	contentString := string(content)
 	if contentString[:4] != "---\n" {
 
@@ -145,15 +144,15 @@ func readAnachromeMetaFromContent(content []byte) (*mydbx.AnachromeMeta, int, er
 
 		return nil, idx + 4, fmt.Errorf("cannot unmarshal data %w", err)
 	}
-	return &mydbx.AnachromeMeta{
+	return &dropbox.AnachromeMeta{
 		Title:     c.Title,
 		Published: &c.Published,
 	}, idx + 7, nil
 }
 
-func (dbx *DropboxBlog) GetBlogPost(qPath string) (BlogPost, error) {
+func (dbx *DropboxBlog) GetBlogPost(id string) (BlogPost, error) {
 
-	content, filemeta, err := dbx.myDbxClient.GetFileContent(qPath)
+	content, filemeta, err := dbx.client.GetFileContent(id)
 	blogPost := BlogPost{}
 	if err != nil {
 		return blogPost, err
@@ -165,7 +164,7 @@ func (dbx *DropboxBlog) GetBlogPost(qPath string) (BlogPost, error) {
 	if err != nil {
 		return blogPost, err
 	}
-	blogPost.Meta.Path = trimDbxPath(filemeta.PathLower)
+	blogPost.Meta.ID = dbx.client.GetID(*filemeta)
 
 	meta, contentStart, err := readAnachromeMetaFromContent(content)
 	if err != nil {

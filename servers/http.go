@@ -87,7 +87,7 @@ func (as *APIServer) registerEndpoints() error {
 
 	blogCotroller := controllers.NewBlog(as.serv.blogStore, as.wc.HostName)
 	as.app.GET("/blog", blogCotroller.ListBlogPosts)
-	as.app.GET("/blog/:path", blogCotroller.GetBlogPost).Name = "BlogPost"
+	as.app.GET("/blog/:id", blogCotroller.GetBlogPost).Name = "BlogPost"
 
 	// GQL
 	if as.wc.enableGQL {
