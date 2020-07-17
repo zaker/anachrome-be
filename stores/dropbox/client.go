@@ -264,7 +264,9 @@ func (c *Client) UpdateEntryProperties(ent EntryMetadata, am AnachromeMeta) erro
 		"POST",
 		"https://api.dropboxapi.com/2/file_properties/properties/"+mode,
 		bytes.NewReader(b))
-
+	if err != nil {
+		return fmt.Errorf("Creating file properties request: %w", err)
+	}
 	req.Header.Add("Authorization", "Bearer "+c.key)
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(req)
@@ -286,7 +288,9 @@ func (c *Client) GetFileContent(id string) ([]byte, *EntryMetadata, error) {
 		context.Background(),
 		"POST",
 		"https://content.dropboxapi.com/2/files/download", nil)
-
+	if err != nil {
+		return nil, nil, fmt.Errorf("Creating file content request: %w", err)
+	}
 	req.Header.Add("Authorization", "Bearer "+c.key)
 	req.Header.Add("Dropbox-API-Arg", fmt.Sprintf("{\"path\":\"%s\"}", path))
 	resp, err := client.Do(req)
