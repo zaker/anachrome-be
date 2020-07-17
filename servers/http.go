@@ -61,9 +61,15 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	if !hs.wc.devMode {
 
 		hs.app.Use(ec_middleware.CSRFWithConfig(ec_middleware.CSRFConfig{
+			Skipper: func(ctx echo.Context) bool {
+				if ctx.Path() == "/gql" {
+					return true
+				}
+				return false
+			},
 			TokenLookup:    "header:X-XSRF-TOKEN",
-			CookieSecure:   true,
-			CookieHTTPOnly: true,
+			CookieSecure:   false,
+			CookieHTTPOnly: false,
 		}))
 	}
 
