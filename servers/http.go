@@ -60,7 +60,11 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	hs.app.Use(ec_middleware.BodyLimit("2M"))
 	if !hs.wc.devMode {
 
-		hs.app.Use(ec_middleware.CSRF())
+		hs.app.Use(ec_middleware.CSRFWithConfig(ec_middleware.CSRFConfig{
+			TokenLookup:    "header:X-XSRF-TOKEN",
+			CookieSecure:   true,
+			CookieHTTPOnly: true,
+		}))
 	}
 
 	hs.app.Use(ec_middleware.CORS())
