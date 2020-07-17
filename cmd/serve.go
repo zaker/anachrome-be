@@ -36,7 +36,7 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 	}
 	opts = append(
 		opts,
-		servers.WithBlogStore(stores.NewDropboxBlogStore(config.DropboxKey())))
+		servers.WithBlogStore(stores.NewDropboxBlogStore(config.DropboxKey(), "/blog", "ptid:vjStHN01QQQAAAAAAABF4g")))
 
 	opts = append(
 		opts,

@@ -109,10 +109,10 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 		Fields: graphql.Fields{
 			"meta": &graphql.Field{
 				Type:        graphql.NewNonNull(blogMetaType),
-				Description: "The path to the post.",
+				Description: "The blog post metadata.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					if blog, ok := p.Source.(stores.BlogPost); ok {
-						return blog.Meta.Path, nil
+						return blog.Meta, nil
 					}
 					return nil, nil
 				},
