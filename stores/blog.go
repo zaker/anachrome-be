@@ -110,7 +110,7 @@ func (dbx *DropboxBlog) GetBlogPostsMeta() ([]BlogPostMeta, error) {
 		if err != nil {
 			return nil, err
 		}
-		if am.Published.Sub(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Hours() < 0 {
+		if am.Published == nil || am.Published.Sub(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Hours() < 0 {
 			continue
 		}
 
