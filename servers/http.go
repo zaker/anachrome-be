@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/zaker/anachrome-be/stores"
+	"github.com/zaker/anachrome-be/stores/blog"
 
 	"github.com/zaker/anachrome-be/controllers"
 	"github.com/zaker/anachrome-be/middleware"
@@ -25,7 +25,7 @@ type APIServer struct {
 }
 
 type Services struct {
-	blogStore stores.BlogStore
+	blogStore blog.BlogStore
 	authn     *services.WebAuthN
 }
 type WebConfig struct {
@@ -179,7 +179,7 @@ func WithGQL() Option {
 	})
 }
 
-func WithBlogStore(blogStore stores.BlogStore) Option {
+func WithBlogStore(blogStore blog.BlogStore) Option {
 
 	return newFuncOption(func(as *APIServer) (err error) {
 

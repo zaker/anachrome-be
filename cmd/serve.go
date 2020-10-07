@@ -11,6 +11,7 @@ import (
 	"github.com/zaker/anachrome-be/servers"
 	"github.com/zaker/anachrome-be/services"
 	"github.com/zaker/anachrome-be/stores"
+	"github.com/zaker/anachrome-be/stores/blog"
 )
 
 var serveCmd = &cobra.Command{
@@ -36,7 +37,11 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 	}
 	opts = append(
 		opts,
-		servers.WithBlogStore(stores.NewDropboxBlogStore(config.DropboxKey(), "/blog", "ptid:vjStHN01QQQAAAAAAABF4g")))
+		servers.WithBlogStore(blog.NewDropboxBlogStore(
+			&http.Client{},
+			config.DropboxKey(),
+			"/blog",
+			"ptid:vjStHN01QQQAAAAAAABF4g")))
 
 	opts = append(
 		opts,

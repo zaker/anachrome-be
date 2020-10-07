@@ -6,13 +6,13 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
 
-	"github.com/zaker/anachrome-be/stores"
+	"github.com/zaker/anachrome-be/stores/blog"
 )
 
 // GQL graphql setup for anachro.me
 type GQL struct {
 	conf      handler.Config
-	blogStore stores.BlogStore
+	blogStore blog.BlogStore
 }
 
 func getBlogMetaType() *graphql.Object {
@@ -54,7 +54,7 @@ func getBlogMetaType() *graphql.Object {
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "The id of the post.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
+					if meta, ok := p.Source.(blog.BlogPostMeta); ok {
 						return meta.ID, nil
 					}
 					return "", nil
@@ -64,7 +64,7 @@ func getBlogMetaType() *graphql.Object {
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "The title of the post.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
+					if meta, ok := p.Source.(blog.BlogPostMeta); ok {
 						return meta.Title, nil
 					}
 					return nil, nil
@@ -74,7 +74,7 @@ func getBlogMetaType() *graphql.Object {
 				Type:        graphql.DateTime,
 				Description: "The date first published.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
+					if meta, ok := p.Source.(blog.BlogPostMeta); ok {
 						return meta.Published, nil
 					}
 					return nil, nil
@@ -84,7 +84,7 @@ func getBlogMetaType() *graphql.Object {
 				Type:        graphql.DateTime,
 				Description: "The date last updated.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if meta, ok := p.Source.(stores.BlogPostMeta); ok {
+					if meta, ok := p.Source.(blog.BlogPostMeta); ok {
 						return meta.Updated, nil
 					}
 					return nil, nil
@@ -100,7 +100,7 @@ func getBlogMetaType() *graphql.Object {
 }
 
 // InitGQL initializes components
-func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
+func InitGQL(isDevMode bool, blogStore blog.BlogStore) (*GQL, error) {
 
 	gql := &GQL{blogStore: blogStore}
 
@@ -113,7 +113,7 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 				Type:        graphql.NewNonNull(blogMetaType),
 				Description: "The blog post metadata.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if blog, ok := p.Source.(stores.BlogPost); ok {
+					if blog, ok := p.Source.(blog.BlogPost); ok {
 						return blog.Meta, nil
 					}
 					return nil, nil
@@ -123,7 +123,7 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 				Type:        graphql.String,
 				Description: "The content.",
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					if blog, ok := p.Source.(stores.BlogPost); ok {
+					if blog, ok := p.Source.(blog.BlogPost); ok {
 						return blog.Content, nil
 					}
 					return nil, nil

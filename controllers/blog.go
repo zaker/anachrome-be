@@ -5,20 +5,20 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/zaker/anachrome-be/stores"
+	"github.com/zaker/anachrome-be/stores/blog"
 )
 
 type Blog struct {
-	blogs    stores.BlogStore
+	blogs    blog.BlogStore
 	basePath string
 }
 
 type BlogPostMeta struct {
-	stores.BlogPostMeta
+	blog.BlogPostMeta
 	Path string `json:"path"`
 }
 
-func NewBlog(blogs stores.BlogStore, basePath string) *Blog {
+func NewBlog(blogs blog.BlogStore, basePath string) *Blog {
 	return &Blog{blogs, basePath}
 }
 

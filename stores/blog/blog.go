@@ -1,9 +1,10 @@
-package stores
+package blog
 
 import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -87,12 +88,12 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 }
 
 // NewDropboxBlogStore creates a dropbox blog store and initializes a syncing client
-func NewDropboxBlogStore(key, basePath, metadataID string) *DropboxBlog {
+func NewDropboxBlogStore(client *http.Client, key, basePath, metadataID string) *DropboxBlog {
 
-	client := dropbox.NewClient(key, basePath, metadataID)
+	c := dropbox.NewClient(client, key, basePath, metadataID)
 
 	dbxBlog := &DropboxBlog{
-		client: client}
+		client: c}
 	go dbxBlog.updateFileMetadata()
 	return dbxBlog
 }

@@ -55,13 +55,22 @@ type Client struct {
 	key                string
 	basePath           string
 	metadataTemplateID string
+	client             *http.Client
 }
 
-func NewClient(key, path, metadataTemplateID string) *Client {
+func NewClient(client *http.Client, key, path, metadataTemplateID string) *Client {
 	if path == "" {
 		path = "/blog"
 	}
-	return &Client{key: key, basePath: path, metadataTemplateID: metadataTemplateID}
+	if client == nil {
+		client = &http.Client{}
+	}
+
+	return &Client{
+		client:             client,
+		key:                key,
+		basePath:           path,
+		metadataTemplateID: metadataTemplateID}
 }
 
 type listFolderArg struct {
@@ -107,17 +116,18 @@ func (c *Client) createFolderMetadataRequest() (*http.Request, error) {
 }
 
 func (c *Client) ListMainFolder(ctx context.Context) (*FolderMetadata, error) {
-	client := &http.Client{}
 
 	req, err := c.createFolderMetadataRequest()
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := client.Do(req.WithContext(ctx))
+	resp, err := c.client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("Requesting folder metadata: %w", err)
 	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
 		code, err := ioutil.ReadAll(resp.Body)
 		return nil, fmt.Errorf("Requesting folder metadata: %s , %w", code, err)
@@ -133,7 +143,6 @@ func (c *Client) ListMainFolder(ctx context.Context) (*FolderMetadata, error) {
 }
 
 func (c *Client) continueMainFolder(ctx context.Context, cursor string) (*FolderMetadata, error) {
-	client := &http.Client{}
 
 	req, err := http.NewRequestWithContext(
 		ctx,
@@ -149,10 +158,11 @@ func (c *Client) continueMainFolder(ctx context.Context, cursor string) (*Folder
 	req.Header.Add("Authorization", "Bearer "+c.key)
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("Requesting folder metadata: %w", err)
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		code, err := ioutil.ReadAll(resp.Body)
 		return nil, fmt.Errorf("Requesting folder metadata: %s , %w", code, err)
@@ -230,7 +240,7 @@ type propertyArg struct {
 }
 
 func (c *Client) UpdateEntryProperties(ctx context.Context, ent EntryMetadata, am AnachromeMeta) error {
-	client := &http.Client{}
+
 	mode := "add"
 
 	arg := propertyArg{
@@ -270,7 +280,7 @@ func (c *Client) UpdateEntryProperties(ctx context.Context, ent EntryMetadata, a
 	}
 	req.Header.Add("Authorization", "Bearer "+c.key)
 	req.Header.Add("Content-Type", "application/json")
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Add/Update file metadata: %w", err)
 	}
@@ -284,7 +294,7 @@ func (c *Client) UpdateEntryProperties(ctx context.Context, ent EntryMetadata, a
 func (c *Client) GetFileContent(ctx context.Context, id string) ([]byte, *EntryMetadata, error) {
 
 	path := c.basePath + "/" + id + ".md"
-	client := &http.Client{}
+
 	req, err := http.NewRequestWithContext(
 		ctx,
 		"POST",
@@ -294,7 +304,7 @@ func (c *Client) GetFileContent(ctx context.Context, id string) ([]byte, *EntryM
 	}
 	req.Header.Add("Authorization", "Bearer "+c.key)
 	req.Header.Add("Dropbox-API-Arg", fmt.Sprintf("{\"path\":\"%s\"}", path))
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Downloading file content: %w", err)
 	}
@@ -302,6 +312,7 @@ func (c *Client) GetFileContent(ctx context.Context, id string) ([]byte, *EntryM
 		code, err := ioutil.ReadAll(resp.Body)
 		return nil, nil, fmt.Errorf("Downloading file content: %s , %w", code, err)
 	}
+	defer resp.Body.Close()
 	content, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, nil, fmt.Errorf("Reading file content: %w", err)
