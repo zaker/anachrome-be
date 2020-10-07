@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/zaker/anachrome-be/stores/cache"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/zaker/anachrome-be/config"
@@ -37,11 +39,12 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 	}
 	opts = append(
 		opts,
-		servers.WithBlogStore(blog.NewDropboxBlogStore(
-			&http.Client{},
-			config.DropboxKey(),
-			"/blog",
-			"ptid:vjStHN01QQQAAAAAAABF4g")))
+		servers.WithBlogStore(
+			cache.NewBlogCache(blog.NewDropboxBlogStore(
+				&http.Client{},
+				config.DropboxKey(),
+				"/blog",
+				"ptid:vjStHN01QQQAAAAAAABF4g"))))
 
 	opts = append(
 		opts,
