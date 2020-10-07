@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
 
@@ -140,7 +142,7 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 		"blogs": &graphql.Field{
 			Type: graphql.NewList(blogMetaType),
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				posts, err := gql.blogStore.GetBlogPostsMeta()
+				posts, err := gql.blogStore.GetBlogPostsMeta(context.TODO())
 				if err != nil {
 					return nil, err
 				}
@@ -157,7 +159,7 @@ func InitGQL(isDevMode bool, blogStore stores.BlogStore) (*GQL, error) {
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				post, err := gql.blogStore.GetBlogPost(p.Args["id"].(string))
+				post, err := gql.blogStore.GetBlogPost(context.TODO(), p.Args["id"].(string))
 				if err != nil {
 					return nil, err
 				}

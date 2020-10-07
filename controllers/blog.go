@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -24,7 +25,7 @@ func NewBlog(blogs stores.BlogStore, basePath string) *Blog {
 func (b *Blog) ListBlogPosts(c echo.Context) error {
 
 	blogPosts := make([]BlogPostMeta, 0)
-	bpm, err := b.blogs.GetBlogPostsMeta()
+	bpm, err := b.blogs.GetBlogPostsMeta(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -43,7 +44,7 @@ func (b *Blog) GetBlogPost(c echo.Context) error {
 	if len(id) == 0 {
 		return c.JSON(http.StatusNotFound, id)
 	}
-	post, err := b.blogs.GetBlogPost(id)
+	post, err := b.blogs.GetBlogPost(context.TODO(), id)
 	if err != nil {
 		return err
 	}

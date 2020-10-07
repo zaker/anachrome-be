@@ -106,7 +106,7 @@ func (c *Client) createFolderMetadataRequest() (*http.Request, error) {
 	return req, nil
 }
 
-func (c *Client) ListMainFolder() (*FolderMetadata, error) {
+func (c *Client) ListMainFolder(ctx context.Context) (*FolderMetadata, error) {
 	client := &http.Client{}
 
 	req, err := c.createFolderMetadataRequest()
@@ -114,7 +114,7 @@ func (c *Client) ListMainFolder() (*FolderMetadata, error) {
 		return nil, err
 	}
 
-	resp, err := client.Do(req)
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("Requesting folder metadata: %w", err)
 	}
@@ -132,11 +132,11 @@ func (c *Client) ListMainFolder() (*FolderMetadata, error) {
 	return data, nil
 }
 
-func (c *Client) continueMainFolder(cursor string) (*FolderMetadata, error) {
+func (c *Client) continueMainFolder(ctx context.Context, cursor string) (*FolderMetadata, error) {
 	client := &http.Client{}
 
 	req, err := http.NewRequestWithContext(
-		context.Background(),
+		ctx,
 		"POST",
 		"https://api.dropboxapi.com/2/files/list_folder/continue",
 		bytes.NewReader([]byte(fmt.Sprintf(`
@@ -169,7 +169,7 @@ func (c *Client) continueMainFolder(cursor string) (*FolderMetadata, error) {
 
 func (c *Client) SubscribeMainFolder(entriesChan chan<- EntryMetadata, done <-chan struct{}) error {
 
-	initResults, err := c.ListMainFolder()
+	initResults, err := c.ListMainFolder(context.Background())
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func (c *Client) SubscribeMainFolder(entriesChan chan<- EntryMetadata, done <-ch
 	ticker := time.NewTicker(1 * time.Second)
 	cursor := initResults.Cursor
 	for range ticker.C {
-		res, err := c.continueMainFolder(cursor)
+		res, err := c.continueMainFolder(context.Background(), cursor)
 		if err != nil {
 			panic(err)
 		}
@@ -229,7 +229,7 @@ type propertyArg struct {
 	UpdatePropertyGroups *[]propertyGroupUpdate `json:"update_property_groups,omitempty"`
 }
 
-func (c *Client) UpdateEntryProperties(ent EntryMetadata, am AnachromeMeta) error {
+func (c *Client) UpdateEntryProperties(ctx context.Context, ent EntryMetadata, am AnachromeMeta) error {
 	client := &http.Client{}
 	mode := "add"
 
@@ -261,7 +261,7 @@ func (c *Client) UpdateEntryProperties(ent EntryMetadata, am AnachromeMeta) erro
 		return fmt.Errorf("Marshalling args: %w", err)
 	}
 	req, err := http.NewRequestWithContext(
-		context.Background(),
+		ctx,
 		"POST",
 		"https://api.dropboxapi.com/2/file_properties/properties/"+mode,
 		bytes.NewReader(b))
@@ -281,12 +281,12 @@ func (c *Client) UpdateEntryProperties(ent EntryMetadata, am AnachromeMeta) erro
 	return nil
 }
 
-func (c *Client) GetFileContent(id string) ([]byte, *EntryMetadata, error) {
+func (c *Client) GetFileContent(ctx context.Context, id string) ([]byte, *EntryMetadata, error) {
 
 	path := c.basePath + "/" + id + ".md"
 	client := &http.Client{}
 	req, err := http.NewRequestWithContext(
-		context.Background(),
+		ctx,
 		"POST",
 		"https://content.dropboxapi.com/2/files/download", nil)
 	if err != nil {

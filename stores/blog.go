@@ -1,6 +1,7 @@
 package stores
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -11,8 +12,8 @@ import (
 )
 
 type BlogStore interface {
-	GetBlogPostsMeta() ([]BlogPostMeta, error)
-	GetBlogPost(string) (BlogPost, error)
+	GetBlogPostsMeta(context.Context) ([]BlogPostMeta, error)
+	GetBlogPost(context.Context, string) (BlogPost, error)
 }
 
 type DropboxBlog struct {
@@ -60,7 +61,7 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 				log.Println("getting file content", err)
 				continue
 			}
-			content, _, err := dbx.client.GetFileContent(id)
+			content, _, err := dbx.client.GetFileContent(context.Background(), id)
 			if err != nil {
 				log.Println("getting file content", err)
 				continue
@@ -75,7 +76,7 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 			am.Published = meta.Published
 			am.Hash = ent.ContentHash
 
-			err = dbx.client.UpdateEntryProperties(ent, am)
+			err = dbx.client.UpdateEntryProperties(context.Background(), ent, am)
 			if err != nil {
 				log.Println("updating anachrome meta", err)
 				continue
@@ -97,9 +98,9 @@ func NewDropboxBlogStore(key, basePath, metadataID string) *DropboxBlog {
 }
 
 // GetBlogPostsMeta lists files metadata
-func (dbx *DropboxBlog) GetBlogPostsMeta() ([]BlogPostMeta, error) {
+func (dbx *DropboxBlog) GetBlogPostsMeta(ctx context.Context) ([]BlogPostMeta, error) {
 	meta := make([]BlogPostMeta, 0)
-	folder, err := dbx.client.ListMainFolder()
+	folder, err := dbx.client.ListMainFolder(ctx)
 
 	if err != nil {
 		return nil, err
@@ -150,9 +151,9 @@ func readAnachromeMetaFromContent(content []byte) (*dropbox.AnachromeMeta, int, 
 	}, idx + 7, nil
 }
 
-func (dbx *DropboxBlog) GetBlogPost(id string) (BlogPost, error) {
+func (dbx *DropboxBlog) GetBlogPost(ctx context.Context, id string) (BlogPost, error) {
 
-	content, filemeta, err := dbx.client.GetFileContent(id)
+	content, filemeta, err := dbx.client.GetFileContent(ctx, id)
 	blogPost := BlogPost{}
 	if err != nil {
 		return blogPost, err
