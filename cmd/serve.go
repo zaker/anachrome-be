@@ -37,14 +37,20 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 	} else {
 		return opts, fmt.Errorf("Cannot create server without hostname")
 	}
+
+	cachedBlogStore, err := cache.NewBlogCache(blog.NewDropboxBlogStore(
+		&http.Client{},
+		config.DropboxKey(),
+		"/blog",
+		"ptid:vjStHN01QQQAAAAAAABF4g"))
+
+	if err != nil {
+		return opts, err
+	}
+
 	opts = append(
 		opts,
-		servers.WithBlogStore(
-			cache.NewBlogCache(blog.NewDropboxBlogStore(
-				&http.Client{},
-				config.DropboxKey(),
-				"/blog",
-				"ptid:vjStHN01QQQAAAAAAABF4g"))))
+		servers.WithBlogStore(cachedBlogStore))
 
 	opts = append(
 		opts,

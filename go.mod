@@ -5,6 +5,7 @@ require (
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.18+incompatible // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
+	github.com/dgraph-io/ristretto v0.0.3
 	github.com/dropbox/dropbox-sdk-go-unofficial v5.6.0+incompatible
 	github.com/duo-labs/webauthn v0.0.0-20200106204955-07abdb9841e9
 	github.com/fatih/color v1.9.0 // indirect
