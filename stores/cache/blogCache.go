@@ -30,7 +30,21 @@ func NewBlogCache(p blog.BlogStore) (*BlogCache, error) {
 
 func (bc *BlogCache) GetBlogPost(ctx context.Context, id string) (blog.BlogPost, error) {
 
-	return bc.persist.GetBlogPost(ctx, id)
+	v, ok := bc.cache.Get(id)
+	bp := blog.BlogPost{}
+	if ok {
+		return v.(blog.BlogPost), nil
+	}
+
+	bp, err := bc.persist.GetBlogPost(ctx, id)
+	if err != nil {
+		return bp, err
+	}
+	ok = bc.cache.Set(id, bp, 0)
+	if !ok {
+		return bp, CacheError(errors.New("Failed to add post{" + id + "} to cache"))
+	}
+	return bp, nil
 }
 
 func (bc *BlogCache) GetBlogPostsMeta(ctx context.Context) ([]blog.BlogPostMeta, error) {
@@ -47,7 +61,7 @@ func (bc *BlogCache) GetBlogPostsMeta(ctx context.Context) ([]blog.BlogPostMeta,
 	}
 	ok = bc.cache.Set("PostsMeta", bpm, 0)
 	if !ok {
-		return nil, CacheError(errors.New("Failed to add to cache"))
+		return nil, CacheError(errors.New("Failed to add meta to cache"))
 	}
 	return bpm, nil
 }
