@@ -18,8 +18,8 @@ type CacheError error
 
 func NewBlogCache(p blog.BlogStore) (*BlogCache, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,
-		MaxCost:     1 << 30,
+		NumCounters: 1e3,
+		MaxCost:     1 << 28,
 		BufferItems: 64,
 	})
 	if err != nil {
