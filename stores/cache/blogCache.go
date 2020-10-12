@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/labstack/gommon/log"
+
 	"github.com/go-redis/cache/v8"
 	"github.com/go-redis/redis/v8"
 	"github.com/vmihailenco/go-tinylfu"
@@ -96,7 +98,7 @@ func (bc *BlogCache) Invalidate(ctx context.Context, id string) error {
 
 	key := "post:" + id
 	err := bc.cache.Delete(ctx, key)
-
+	log.Print("Cache invalidates", key)
 	if err != nil {
 		return CacheError(err)
 	}

@@ -18,7 +18,8 @@ type BlogStore interface {
 }
 
 type DropboxBlog struct {
-	client *dropbox.Client
+	client      *dropbox.Client
+	UpdatesChan chan string
 }
 
 type BlogPostMeta struct {
@@ -58,10 +59,7 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 		}
 		if ent.ContentHash != am.Hash {
 			id := dbx.client.GetID(ent)
-			if err != nil {
-				log.Println("getting file content", err)
-				continue
-			}
+
 			content, _, err := dbx.client.GetFileContent(context.Background(), id)
 			if err != nil {
 				log.Println("getting file content", err)
@@ -82,6 +80,7 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 				log.Println("updating anachrome meta", err)
 				continue
 			}
+			dbx.UpdatesChan <- id
 		}
 
 	}
@@ -91,9 +90,11 @@ func (dbx *DropboxBlog) updateFileMetadata() {
 func NewDropboxBlogStore(client *http.Client, key, basePath, metadataID string) *DropboxBlog {
 
 	c := dropbox.NewClient(client, key, basePath, metadataID)
-
+	uc := make(chan string, 1)
 	dbxBlog := &DropboxBlog{
-		client: c}
+		client:      c,
+		UpdatesChan: uc}
+
 	go dbxBlog.updateFileMetadata()
 	return dbxBlog
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -38,20 +39,33 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 		return opts, fmt.Errorf("Cannot create server without hostname")
 	}
 
-	cachedBlogStore, err := cache.NewRedisBlogCache(blog.NewDropboxBlogStore(
+	dbxBlog := blog.NewDropboxBlogStore(
 		&http.Client{},
 		config.DropboxKey(),
 		"/blog",
-		"ptid:vjStHN01QQQAAAAAAABF4g"),
-		config.RedisHost())
+		"ptid:vjStHN01QQQAAAAAAABF4g")
 
-	if err != nil {
-		return opts, err
+	var bs blog.BlogStore
+	if len(config.RedisHost()) > 0 {
+		cachedBlogStore, err := cache.NewRedisBlogCache(dbxBlog, config.RedisHost())
+
+		if err != nil {
+			return opts, err
+		}
+		bs = cachedBlogStore
+
+		go func() {
+			for id := range dbxBlog.UpdatesChan {
+				cachedBlogStore.Invalidate(context.Background(), id)
+			}
+		}()
+	} else {
+		bs = dbxBlog
 	}
 
 	opts = append(
 		opts,
-		servers.WithBlogStore(cachedBlogStore))
+		servers.WithBlogStore(bs))
 
 	opts = append(
 		opts,
