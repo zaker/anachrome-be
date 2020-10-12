@@ -5,63 +5,109 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dgraph-io/ristretto"
+	"github.com/go-redis/cache/v8"
+	"github.com/go-redis/redis/v8"
+	"github.com/vmihailenco/go-tinylfu"
 	"github.com/zaker/anachrome-be/stores/blog"
 )
 
 type BlogCache struct {
 	persist blog.BlogStore
-	cache   *ristretto.Cache
+	cache   *cache.Cache
 }
 
 type CacheError error
 
-func NewBlogCache(p blog.BlogStore) (*BlogCache, error) {
-	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e3,
-		MaxCost:     1 << 28,
-		BufferItems: 64,
+func NewRedisBlogCache(p blog.BlogStore, redishost string) (*BlogCache, error) {
+	ring := redis.NewRing(&redis.RingOptions{
+		Addrs: map[string]string{
+			"server1": redishost,
+		},
 	})
-	if err != nil {
-		return nil, fmt.Errorf("Creating new blog cache: %w", err)
-	}
+
+	cache := cache.New(&cache.Options{
+		Redis:      ring,
+		LocalCache: tinylfu.NewSync(10000, 100000),
+	})
+	// pong, err := rdb.Ping(context.Background()).Result()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("Connecting to redis cache: %w", err)
+	// }
 	return &BlogCache{persist: p, cache: cache}, nil
 }
 
 func (bc *BlogCache) GetBlogPost(ctx context.Context, id string) (blog.BlogPost, error) {
 
-	v, ok := bc.cache.Get(id)
-	bp := blog.BlogPost{}
-	if ok {
-		return v.(blog.BlogPost), nil
+	var bp blog.BlogPost
+	key := "post:" + id
+	err := bc.cache.Get(ctx, key, &bp)
+
+	if err == nil {
+		return bp, nil
+	}
+	if err != nil && err != cache.ErrCacheMiss {
+		return bp, CacheError(errors.New("Failed to get post{" + key + "} "))
 	}
 
-	bp, err := bc.persist.GetBlogPost(ctx, id)
+	bp, err = bc.persist.GetBlogPost(ctx, id)
 	if err != nil {
 		return bp, err
 	}
-	ok = bc.cache.Set(id, bp, 0)
-	if !ok {
-		return bp, CacheError(errors.New("Failed to add post{" + id + "} to cache"))
+	err = bc.cache.Set(
+		&cache.Item{
+			Ctx:   ctx,
+			Key:   key,
+			Value: bp,
+			TTL:   0,
+		})
+	if err != nil {
+		return bp, CacheError(errors.New("Failed to set post{" + key + "} to cache"))
 	}
 	return bp, nil
 }
 
 func (bc *BlogCache) GetBlogPostsMeta(ctx context.Context) ([]blog.BlogPostMeta, error) {
 
-	v, ok := bc.cache.Get("PostsMeta")
+	var bpm []blog.BlogPostMeta
+	err := bc.cache.Get(ctx, "PostsMeta", &bpm)
 
-	if ok {
-		return v.([]blog.BlogPostMeta), nil
+	if err == nil {
+		return bpm, nil
 	}
+	if err != nil && err != cache.ErrCacheMiss {
+		return nil, CacheError(fmt.Errorf("Failed to get postmeta: %w", err))
 
-	bpm, err := bc.persist.GetBlogPostsMeta(ctx)
+	}
+	bpm, err = bc.persist.GetBlogPostsMeta(ctx)
 	if err != nil {
 		return nil, err
 	}
-	ok = bc.cache.Set("PostsMeta", bpm, 0)
-	if !ok {
+	err = bc.cache.Set(
+		&cache.Item{
+			Ctx:   ctx,
+			Key:   "PostsMeta",
+			Value: bpm,
+			TTL:   0,
+		})
+	if err != nil {
 		return nil, CacheError(errors.New("Failed to add meta to cache"))
 	}
 	return bpm, nil
+}
+
+func (bc *BlogCache) Invalidate(ctx context.Context, id string) error {
+
+	key := "post:" + id
+	err := bc.cache.Delete(ctx, key)
+
+	if err != nil {
+		return CacheError(err)
+	}
+	err = bc.cache.Delete(ctx, "PostsMeta")
+
+	if err != nil {
+		return CacheError(err)
+	}
+
+	return nil
 }

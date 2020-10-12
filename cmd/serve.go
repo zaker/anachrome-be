@@ -38,11 +38,12 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 		return opts, fmt.Errorf("Cannot create server without hostname")
 	}
 
-	cachedBlogStore, err := cache.NewBlogCache(blog.NewDropboxBlogStore(
+	cachedBlogStore, err := cache.NewRedisBlogCache(blog.NewDropboxBlogStore(
 		&http.Client{},
 		config.DropboxKey(),
 		"/blog",
-		"ptid:vjStHN01QQQAAAAAAABF4g"))
+		"ptid:vjStHN01QQQAAAAAAABF4g"),
+		config.RedisHost())
 
 	if err != nil {
 		return opts, err

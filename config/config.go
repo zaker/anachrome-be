@@ -24,3 +24,11 @@ func HTTPPort() int {
 func DropboxKey() string {
 	return viper.GetString("DROPBOX_KEY")
 }
+
+func RedisHost() string {
+	return viper.GetString("REDIS_HOST")
+}
+
+func RedisPassword() string {
+	return viper.GetString("REDIS_PASSWORD")
+}
