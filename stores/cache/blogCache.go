@@ -29,10 +29,7 @@ func NewRedisBlogCache(p blog.BlogStore, redishost string) (*BlogCache, error) {
 		Redis:      ring,
 		LocalCache: tinylfu.NewSync(10000, 100000),
 	})
-	// pong, err := rdb.Ping(context.Background()).Result()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("Connecting to redis cache: %w", err)
-	// }
+
 	return &BlogCache{persist: p, cache: cache}, nil
 }
 
