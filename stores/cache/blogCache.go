@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/labstack/gommon/log"
 
 	"github.com/go-redis/cache/v8"
 	"github.com/go-redis/redis/v8"
-	"github.com/vmihailenco/go-tinylfu"
 	"github.com/zaker/anachrome-be/stores/blog"
 )
 
@@ -29,7 +29,7 @@ func NewRedisBlogCache(p blog.BlogStore, redishost string) (*BlogCache, error) {
 
 	cache := cache.New(&cache.Options{
 		Redis:      ring,
-		LocalCache: tinylfu.NewSync(10000, 100000),
+		LocalCache: cache.NewTinyLFU(1000, time.Minute),
 	})
 
 	return &BlogCache{persist: p, cache: cache}, nil

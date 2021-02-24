@@ -45,7 +45,6 @@ require (
 	github.com/timakin/bodyclose v0.0.0-20190930140734-f7f2e9bca95e // indirect
 	github.com/ultraware/funlen v0.0.3 // indirect
 	github.com/urfave/cli v1.22.2 // indirect
-	github.com/vmihailenco/go-tinylfu v0.2.0
 	github.com/vmihailenco/msgpack/v5 v5.2.0 // indirect
 	go.uber.org/atomic v1.5.1 // indirect
 	go.uber.org/multierr v1.4.0 // indirect
