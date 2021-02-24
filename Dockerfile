@@ -1,5 +1,7 @@
 FROM golang:alpine as builder
-RUN apk update && apk upgrade && apk add --no-cache ca-certificates git
+RUN apk update && \
+    apk upgrade &&\
+    apk add --no-cache ca-certificates git gcc musl-dev
 RUN update-ca-certificates
 
 WORKDIR /src
@@ -7,6 +9,7 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY . .
+RUN go build --race
 RUN CGO_ENABLED=0\
     GOOS=linux\
     GOARCH=amd64 \
