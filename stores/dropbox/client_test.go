@@ -90,6 +90,22 @@ func TestClient_AnachromeMeta(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"Should fail on date metadata",
+			NewClient(nil, "key", "path", "metadata"),
+			EntryMetadata{
+				PropertyGroups: &[]propertyGroup{
+					{TemplateID: "metadata",
+						Fields: []field{
+							{Name: "title", Value: "title 1"},
+							{Name: "published", Value: "2006-01-02 a:04:05"},
+							{Name: "hash", Value: "value2"},
+						}},
+				},
+			},
+			AnachromeMeta{},
+			true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

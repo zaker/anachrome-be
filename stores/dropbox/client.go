@@ -216,7 +216,7 @@ func (c *Client) AnachromeMeta(emd EntryMetadata) (AnachromeMeta, error) {
 				if field.Name == "published" {
 					d, err := time.Parse("2006-01-02 15:04:05 +0000 UTC", field.Value)
 					if err != nil {
-						return am, fmt.Errorf("Published is not a date: %w", err)
+						return AnachromeMeta{}, fmt.Errorf("Published is not a date: %w", err)
 					}
 					am.Published = &d
 				}
