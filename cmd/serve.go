@@ -58,7 +58,11 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			}
 		}()
 	} else {
-		bs = dbxBlog
+		cachedBlogStore, err := cache.NewInMemoryCache(dbxBlog)
+		if err != nil {
+			return opts, err
+		}
+		bs = cachedBlogStore
 	}
 
 	opts = append(

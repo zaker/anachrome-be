@@ -28,10 +28,6 @@ func getBlogMetaType() *graphql.Object {
 				Type:        graphql.NewNonNull(graphql.String),
 				Description: "The title of the post.",
 			},
-			// "content": &graphql.Field{
-			// 	Type:        graphql.String,
-			// 	Description: "The content of the post.",
-			// },
 			"published": &graphql.Field{
 				Type:        graphql.DateTime,
 				Description: "The date first published.",
