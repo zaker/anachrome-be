@@ -43,7 +43,7 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 		"/blog",
 		"ptid:vjStHN01QQQAAAAAAABF4g")
 
-	var bs blog.BlogStore
+	var bs cache.CachedBlogStore
 	if len(config.RedisHost()) > 0 {
 		cachedBlogStore, err := cache.NewRedisBlogCache(dbxBlog, config.RedisHost())
 
@@ -52,18 +52,20 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 		}
 		bs = cachedBlogStore
 
-		go func() {
-			for id := range dbxBlog.UpdatesChan {
-				cachedBlogStore.Invalidate(context.Background(), id)
-			}
-		}()
 	} else {
 		cachedBlogStore, err := cache.NewInMemoryCache(dbxBlog)
 		if err != nil {
 			return opts, err
 		}
 		bs = cachedBlogStore
+
 	}
+
+	go func() {
+		for id := range dbxBlog.UpdatesChan {
+			bs.Invalidate(context.Background(), id)
+		}
+	}()
 
 	opts = append(
 		opts,
