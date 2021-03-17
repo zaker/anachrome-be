@@ -51,11 +51,8 @@ func TestNewClient(t *testing.T) {
 
 func TestClient_AnachromeMeta(t *testing.T) {
 
-	tmpDate, err := time.Parse("2006-01-02 15:04:05 +0000 UTC", "2006-01-02 15:04:05 +0000 UTC")
-	if err != nil {
-		t.Errorf("Failed genearting date: %w", err)
-		return
-	}
+	tmpDate := time.Date(2006, 01, 02, 15, 04, 05, 0, time.UTC)
+
 	tests := []struct {
 		name    string
 		c       *Client
@@ -85,7 +82,7 @@ func TestClient_AnachromeMeta(t *testing.T) {
 			},
 			AnachromeMeta{
 				Title:     "title 1",
-				Published: &tmpDate,
+				Published: tmpDate,
 				Hash:      "value2",
 			},
 			false,
