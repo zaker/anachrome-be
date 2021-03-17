@@ -98,7 +98,7 @@ func (bc *BlogCache) Invalidate(ctx context.Context, id string) error {
 
 	key := "post:" + id
 	err := bc.cache.Delete(ctx, key)
-	log.Print("Cache invalidates", key)
+	log.Print("Cache invalidates ", key)
 	if err != nil {
 		return CacheError(err)
 	}
