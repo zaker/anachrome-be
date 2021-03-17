@@ -23,10 +23,10 @@ type DropboxBlog struct {
 }
 
 type BlogPostMeta struct {
-	Title     string     `json:"title,omitempty"`
-	ID        string     `json:"id,omitempty"`
-	Published *time.Time `json:"published,omitempty"`
-	Updated   *time.Time `json:"updated,omitempty"`
+	Title     string    `json:"title,omitempty"`
+	ID        string    `json:"id,omitempty"`
+	Published time.Time `json:"published,omitempty"`
+	Updated   time.Time `json:"updated,omitempty"`
 }
 
 type BlogPost struct {
@@ -113,7 +113,7 @@ func (dbx *DropboxBlog) GetBlogPostsMeta(ctx context.Context) ([]BlogPostMeta, e
 		if err != nil {
 			return nil, err
 		}
-		if am.Published == nil || am.Published.Sub(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Hours() < 0 {
+		if am.Published.Sub(time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Hours() < 0 {
 			continue
 		}
 
@@ -121,7 +121,7 @@ func (dbx *DropboxBlog) GetBlogPostsMeta(ctx context.Context) ([]BlogPostMeta, e
 			Title:     am.Title,
 			Published: am.Published,
 			ID:        dbx.client.GetID(ent),
-			Updated:   &ent.ClientModified,
+			Updated:   ent.ClientModified,
 		})
 	}
 	return meta, nil
@@ -129,6 +129,9 @@ func (dbx *DropboxBlog) GetBlogPostsMeta(ctx context.Context) ([]BlogPostMeta, e
 }
 
 func readAnachromeMetaFromContent(content []byte) (*dropbox.AnachromeMeta, int, error) {
+	if len(content) < 8 {
+		return nil, -1, fmt.Errorf("Content to short to include metadata")
+	}
 	contentString := string(content)
 	if contentString[:4] != "---\n" {
 
@@ -149,7 +152,7 @@ func readAnachromeMetaFromContent(content []byte) (*dropbox.AnachromeMeta, int, 
 	}
 	return &dropbox.AnachromeMeta{
 		Title:     c.Title,
-		Published: &c.Published,
+		Published: c.Published,
 	}, idx + 7, nil
 }
 
@@ -176,7 +179,7 @@ func (dbx *DropboxBlog) GetBlogPost(ctx context.Context, id string) (BlogPost, e
 	blogPost.Content = strings.TrimSpace(string(content[contentStart:]))
 	blogPost.Meta.Title = meta.Title
 	blogPost.Meta.Published = meta.Published
-	blogPost.Meta.Updated = &filemeta.ClientModified
+	blogPost.Meta.Updated = filemeta.ClientModified
 
 	return blogPost, nil
 }

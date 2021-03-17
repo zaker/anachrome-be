@@ -47,7 +47,7 @@ type EntryMetadata struct {
 }
 type AnachromeMeta struct {
 	Title     string
-	Published *time.Time
+	Published time.Time
 	Hash      string
 }
 
@@ -218,7 +218,7 @@ func (c *Client) AnachromeMeta(emd EntryMetadata) (AnachromeMeta, error) {
 					if err != nil {
 						return AnachromeMeta{}, fmt.Errorf("Published is not a date: %w", err)
 					}
-					am.Published = &d
+					am.Published = d
 				}
 				if field.Name == "hash" {
 					am.Hash = field.Value
