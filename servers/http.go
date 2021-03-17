@@ -26,7 +26,6 @@ type APIServer struct {
 
 type Services struct {
 	blogStore blog.BlogStore
-	authn     *services.WebAuthN
 }
 type WebConfig struct {
 	HostName  string
@@ -110,17 +109,6 @@ func (as *APIServer) registerEndpoints() error {
 		as.app.Any("/gql", echo.WrapHandler(handler()))
 	}
 
-	// WebAuthN
-	if as.serv.authn != nil {
-		authCtl := &controllers.Auth{
-			Service: as.serv.authn,
-		}
-		cAuth := as.app.Group("/auth")
-		cAuth.POST("/register-begin", authCtl.BeginRegistration)
-		cAuth.POST("/register-finish", authCtl.FinishRegistration)
-		cAuth.POST("/login-begin", authCtl.BeginLogin)
-		cAuth.POST("/login-finish", authCtl.FinishLogin)
-	}
 	return nil
 }
 
@@ -184,17 +172,6 @@ func WithBlogStore(blogStore blog.BlogStore) Option {
 	return newFuncOption(func(as *APIServer) (err error) {
 
 		as.serv.blogStore = blogStore
-		return
-	})
-}
-func WithAuthN(authn *services.WebAuthN) Option {
-
-	return newFuncOption(func(hs *APIServer) (err error) {
-		if authn == nil {
-			return fmt.Errorf("Cannot set auth service to nil")
-		}
-
-		hs.serv.authn = authn
 		return
 	})
 }

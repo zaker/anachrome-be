@@ -12,8 +12,6 @@ import (
 	"github.com/spf13/viper"
 	"github.com/zaker/anachrome-be/config"
 	"github.com/zaker/anachrome-be/servers"
-	"github.com/zaker/anachrome-be/services"
-	"github.com/zaker/anachrome-be/stores"
 	"github.com/zaker/anachrome-be/stores/blog"
 )
 
@@ -77,15 +75,6 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 			servers.WithDevMode())
 	}
 
-	authn, err := services.NewAuthN(
-		&stores.UserFileStore{},
-		&services.AuthNConfig{})
-	if err != nil {
-		return opts, err
-	}
-	opts = append(
-		opts,
-		servers.WithAuthN(authn))
 	return opts, nil
 }
 
