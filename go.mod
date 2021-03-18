@@ -9,6 +9,7 @@ require (
 	github.com/go-redis/cache/v8 v8.3.1
 	github.com/go-redis/redis/v8 v8.6.0
 	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/golang/gddo v0.0.0-20210115222349-20d68f94ee1f // indirect
 	github.com/golang/groupcache v0.0.0-20191227052852-215e87163ea7 // indirect
 	github.com/golang/protobuf v1.4.3
 	github.com/golangci/gofmt v0.0.0-20190930125516-244bba706f1a // indirect
@@ -42,6 +43,7 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.0
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/timakin/bodyclose v0.0.0-20190930140734-f7f2e9bca95e // indirect
 	github.com/ultraware/funlen v0.0.3 // indirect
 	github.com/urfave/cli v1.22.2 // indirect

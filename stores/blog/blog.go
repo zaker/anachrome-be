@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+//go:generate moq -pkg mocks -out ../../mocks/blog.go . BlogStore
 type BlogStore interface {
 	GetBlogPostsMeta(context.Context) ([]BlogPostMeta, error)
 	GetBlogPost(context.Context, string) (BlogPost, error)
