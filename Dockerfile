@@ -10,7 +10,7 @@ COPY go.sum .
 RUN go mod download
 COPY . .
 RUN go build --race
-RUN go test ./...
+RUN go test --race ./...
 RUN CGO_ENABLED=0\
     GOOS=linux\
     GOARCH=amd64 \
