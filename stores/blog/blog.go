@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/zaker/anachrome-be/stores/dropbox"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 //go:generate moq -pkg mocks -out ../../mocks/blog.go . BlogStore
