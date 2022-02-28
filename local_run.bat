@@ -1,2 +1,2 @@
 go build
-anachrome-be.exe -c webConf.json
+anachrome-be.exe serve --config webConf.json
