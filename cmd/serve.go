@@ -63,7 +63,10 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 
 	go func() {
 		for id := range dbxBlog.UpdatesChan {
-			bs.Invalidate(context.Background(), id)
+			err := bs.Invalidate(context.Background(), id)
+			if err != nil {
+				log.Println("warn: invalidating", err)
+			}
 		}
 	}()
 

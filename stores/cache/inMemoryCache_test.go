@@ -53,8 +53,11 @@ func TestCache(t *testing.T) {
 	assert.Equal(t, wantBlog, gotBlog)
 	assert.Equal(t, 2, callsToGBP)
 
-	c.Invalidate(context.Background(), "1")
+	err = c.Invalidate(context.Background(), "1")
 
+	if err != nil {
+		t.Errorf("Invalidating: %v", err)
+	}
 	gotBlog, err = c.GetBlogPost(context.Background(), "1")
 
 	if err != nil {
