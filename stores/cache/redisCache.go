@@ -71,7 +71,7 @@ func (rbc *RedisBlogCache) GetBlogPostsMeta(ctx context.Context) ([]blog.BlogPos
 		return bpm, nil
 	}
 	if err != nil && err != cache.ErrCacheMiss {
-		return nil, CacheError(fmt.Errorf("Failed to get postmeta: %w", err))
+		return nil, CacheError(fmt.Errorf("failed to get postmeta: %w", err))
 
 	}
 	bpm, err = rbc.persist.GetBlogPostsMeta(ctx)
@@ -86,7 +86,7 @@ func (rbc *RedisBlogCache) GetBlogPostsMeta(ctx context.Context) ([]blog.BlogPos
 			TTL:   0,
 		})
 	if err != nil {
-		return nil, CacheError(errors.New("Failed to add meta to cache"))
+		return nil, CacheError(errors.New("failed to add meta to cache"))
 	}
 	return bpm, nil
 }

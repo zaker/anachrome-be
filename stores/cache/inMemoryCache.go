@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"time"
 
 	"encoding/gob"
@@ -36,7 +36,7 @@ func (imbc *InMemoryCache) GetBlogPost(ctx context.Context, id string) (blog.Blo
 		b.Write(m)
 		err := dec.Decode(&bp)
 		if err != nil {
-			return bp, fmt.Errorf("Decoding cached item")
+			return bp, fmt.Errorf("decoding cached item")
 		}
 		return bp, nil
 	}
@@ -52,7 +52,7 @@ func (imbc *InMemoryCache) GetBlogPost(ctx context.Context, id string) (blog.Blo
 		return blog.BlogPost{}, err
 	}
 
-	m, err = ioutil.ReadAll(&b)
+	m, err = io.ReadAll(&b)
 	if err != nil {
 		return blog.BlogPost{}, err
 	}

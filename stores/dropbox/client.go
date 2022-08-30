@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -98,7 +98,7 @@ func (c *Client) createFolderMetadataRequest() (*http.Request, error) {
 
 	b, err := json.Marshal(arg)
 	if err != nil {
-		return nil, fmt.Errorf("Marshalling args: %w", err)
+		return nil, fmt.Errorf("marshalling args: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(
@@ -107,7 +107,7 @@ func (c *Client) createFolderMetadataRequest() (*http.Request, error) {
 		"https://api.dropboxapi.com/2/files/list_folder",
 		bytes.NewReader(b))
 	if err != nil {
-		return nil, fmt.Errorf("Creating folder request: %w", err)
+		return nil, fmt.Errorf("creating folder request: %w", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+c.key)
 	req.Header.Add("Content-Type", "application/json")
@@ -124,20 +124,20 @@ func (c *Client) ListMainFolder(ctx context.Context) (*FolderMetadata, error) {
 
 	resp, err := c.client.Do(req.WithContext(ctx))
 	if err != nil {
-		return nil, fmt.Errorf("Requesting folder metadata: %w", err)
+		return nil, fmt.Errorf("requesting folder metadata: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		code, err := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Requesting folder metadata: %s , %w", code, err)
+		code, err := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("requesting folder metadata: %s , %w", code, err)
 	}
 
 	decoder := json.NewDecoder(resp.Body)
 	data := &FolderMetadata{}
 	err = decoder.Decode(data)
 	if err != nil {
-		return nil, fmt.Errorf("Decoding response: %w", err)
+		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 	return data, nil
 }
@@ -160,19 +160,19 @@ func (c *Client) continueMainFolder(ctx context.Context, cursor string) (*Folder
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Requesting folder metadata: %w", err)
+		return nil, fmt.Errorf("requesting folder metadata: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		code, err := ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Requesting folder metadata: %s , %w", code, err)
+		code, err := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("requesting folder metadata: %s , %w", code, err)
 	}
 
 	decoder := json.NewDecoder(resp.Body)
 	data := &FolderMetadata{}
 	err = decoder.Decode(data)
 	if err != nil {
-		return nil, fmt.Errorf("Decoding response: %w", err)
+		return nil, fmt.Errorf("decoding response: %w", err)
 	}
 	return data, nil
 }
@@ -208,26 +208,26 @@ func (c *Client) AnachromeMeta(emd EntryMetadata) (AnachromeMeta, error) {
 		return am, nil
 	}
 	for _, pg := range *emd.PropertyGroups {
-		if pg.TemplateID == c.metadataTemplateID {
-			for _, field := range pg.Fields {
-				if field.Name == "title" {
-					am.Title = field.Value
-				}
-				if field.Name == "published" {
-					d, err := time.Parse("2006-01-02 15:04:05 +0000 UTC", field.Value)
-					if err != nil {
-						return AnachromeMeta{}, fmt.Errorf("Published is not a date: %w", err)
-					}
-					am.Published = d
-				}
-				if field.Name == "hash" {
-					am.Hash = field.Value
-				}
-
+		if pg.TemplateID != c.metadataTemplateID {
+			continue
+		}
+		for _, field := range pg.Fields {
+			if field.Name == "title" {
+				am.Title = field.Value
 			}
-			return am, nil
+			if field.Name == "published" {
+				d, err := time.Parse("2006-01-02 15:04:05 +0000 UTC", field.Value)
+				if err != nil {
+					return AnachromeMeta{}, fmt.Errorf("published is not a date: %w", err)
+				}
+				am.Published = d
+			}
+			if field.Name == "hash" {
+				am.Hash = field.Value
+			}
 
 		}
+		return am, nil
 
 	}
 	return am, nil
@@ -268,7 +268,7 @@ func (c *Client) UpdateEntryProperties(ctx context.Context, ent EntryMetadata, a
 
 	b, err := json.Marshal(arg)
 	if err != nil {
-		return fmt.Errorf("Marshalling args: %w", err)
+		return fmt.Errorf("marshalling args: %w", err)
 	}
 	req, err := http.NewRequestWithContext(
 		ctx,
@@ -276,7 +276,7 @@ func (c *Client) UpdateEntryProperties(ctx context.Context, ent EntryMetadata, a
 		"https://api.dropboxapi.com/2/file_properties/properties/"+mode,
 		bytes.NewReader(b))
 	if err != nil {
-		return fmt.Errorf("Creating file properties request: %w", err)
+		return fmt.Errorf("creating file properties request: %w", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+c.key)
 	req.Header.Add("Content-Type", "application/json")
@@ -285,7 +285,7 @@ func (c *Client) UpdateEntryProperties(ctx context.Context, ent EntryMetadata, a
 		return fmt.Errorf("Add/Update file metadata: %w", err)
 	}
 	if resp.StatusCode != 200 {
-		code, err := ioutil.ReadAll(resp.Body)
+		code, err := io.ReadAll(resp.Body)
 		return fmt.Errorf("Add/Update file metadata: %s , %w", code, err)
 	}
 	return nil
@@ -300,27 +300,27 @@ func (c *Client) GetFileContent(ctx context.Context, id string) ([]byte, *EntryM
 		"POST",
 		"https://content.dropboxapi.com/2/files/download", nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Creating file content request: %w", err)
+		return nil, nil, fmt.Errorf("creating file content request: %w", err)
 	}
 	req.Header.Add("Authorization", "Bearer "+c.key)
 	req.Header.Add("Dropbox-API-Arg", fmt.Sprintf("{\"path\":\"%s\"}", path))
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Downloading file content: %w", err)
+		return nil, nil, fmt.Errorf("downloading file content: %w", err)
 	}
 	if resp.StatusCode != 200 {
-		code, err := ioutil.ReadAll(resp.Body)
-		return nil, nil, fmt.Errorf("Downloading file content: %s , %w", code, err)
+		code, err := io.ReadAll(resp.Body)
+		return nil, nil, fmt.Errorf("downloading file content: %s , %w", code, err)
 	}
 	defer resp.Body.Close()
-	content, err := ioutil.ReadAll(resp.Body)
+	content, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Reading file content: %w", err)
+		return nil, nil, fmt.Errorf("reading file content: %w", err)
 	}
 	var meta EntryMetadata
 	err = json.Unmarshal([]byte(resp.Header["Dropbox-Api-Result"][0]), &meta)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Reading file content: %w", err)
+		return nil, nil, fmt.Errorf("reading file content: %w", err)
 	}
 	return content, &meta, nil
 }

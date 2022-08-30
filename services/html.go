@@ -3,7 +3,7 @@ package services
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"text/template"
 
@@ -43,15 +43,15 @@ func BlogsToHTML(blogs []BlogPostMeta) (string, error) {
 
 	t, err := template.New("webpage").Parse(tpl)
 	if err != nil {
-		return "", fmt.Errorf("Parsing html template: %w", err)
+		return "", fmt.Errorf("parsing html template: %w", err)
 	}
 	err = t.Execute(sb, blogs)
 	if err != nil {
-		return "", fmt.Errorf("Executing html template: %w", err)
+		return "", fmt.Errorf("executing html template: %w", err)
 	}
-	htmlBytes, err := ioutil.ReadAll(sb)
+	htmlBytes, err := io.ReadAll(sb)
 	if err != nil {
-		return "", fmt.Errorf("Read html template: %w", err)
+		return "", fmt.Errorf("read html template: %w", err)
 	}
 	return string(htmlBytes), nil
 }
@@ -74,15 +74,15 @@ func BlogToHTML(blogs blog.BlogPost) (string, error) {
 
 	t, err := template.New("webpage").Parse(tpl)
 	if err != nil {
-		return "", fmt.Errorf("Parsing html template: %w", err)
+		return "", fmt.Errorf("parsing html template: %w", err)
 	}
 	err = t.Execute(sb, blogs)
 	if err != nil {
-		return "", fmt.Errorf("Executing html template: %w", err)
+		return "", fmt.Errorf("executing html template: %w", err)
 	}
-	htmlBytes, err := ioutil.ReadAll(sb)
+	htmlBytes, err := io.ReadAll(sb)
 	if err != nil {
-		return "", fmt.Errorf("Read html template: %w", err)
+		return "", fmt.Errorf("read html template: %w", err)
 	}
 	return string(htmlBytes), nil
 }

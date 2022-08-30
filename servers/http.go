@@ -12,7 +12,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	// jwt "github.com/dgrijalva/jwt-go"
 	ec_middleware "github.com/labstack/echo/v4/middleware"
 )
 
@@ -51,7 +50,7 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	for _, opt := range opts {
 		err = opt.apply(hs)
 		if err != nil {
-			return nil, fmt.Errorf("Applying config failed: %w", err)
+			return nil, fmt.Errorf("applying config failed: %w", err)
 		}
 	}
 	hs.app.Pre(ec_middleware.RemoveTrailingSlash())
@@ -61,10 +60,9 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 
 		hs.app.Use(ec_middleware.CSRFWithConfig(ec_middleware.CSRFConfig{
 			Skipper: func(ctx echo.Context) bool {
-				if ctx.Path() == "/gql" {
-					return true
-				}
-				return false
+
+				return ctx.Path() == "/gql"
+
 			},
 			TokenLookup:    "header:X-XSRF-TOKEN",
 			CookieSecure:   false,

@@ -34,7 +34,7 @@ func createHTTPServerOptions() ([]servers.Option, error) {
 					HTTPPort: config.HTTPPort(),
 				}))
 	} else {
-		return opts, fmt.Errorf("Cannot create server without hostname")
+		return opts, fmt.Errorf("cannot create server without hostname")
 	}
 
 	dbxBlog := blog.NewDropboxBlogStore(
@@ -89,12 +89,12 @@ func serve(opts []servers.Option) error {
 	hs, err := servers.NewHTTPServer(opts...)
 
 	if err != nil {
-		return fmt.Errorf("Error configuring http server %w", err)
+		return fmt.Errorf("error configuring http server %w", err)
 	}
 	err = hs.Serve()
 
 	if err != nil && err != http.ErrServerClosed {
-		return fmt.Errorf("Error running http server %w", err)
+		return fmt.Errorf("error running http server %w", err)
 	}
 	return nil
 }

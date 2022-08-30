@@ -131,17 +131,17 @@ func (dbx *DropboxBlog) GetBlogPostsMeta(ctx context.Context) ([]BlogPostMeta, e
 
 func readAnachromeMetaFromContent(content []byte) (*dropbox.AnachromeMeta, int, error) {
 	if len(content) < 8 {
-		return nil, -1, fmt.Errorf("Content to short to include metadata")
+		return nil, -1, fmt.Errorf("content to short to include metadata")
 	}
 	contentString := string(content)
 	if contentString[:4] != "---\n" {
 
-		return nil, -1, fmt.Errorf("Couldn't find metadata prelude")
+		return nil, -1, fmt.Errorf("couldn't find metadata prelude")
 	}
 
 	idx := strings.Index(contentString[4:], "---")
 	if idx == -1 {
-		return nil, -1, fmt.Errorf("Couldn't find metadata postlude")
+		return nil, -1, fmt.Errorf("couldn't find metadata postlude")
 	}
 	var c ContentMeta
 
