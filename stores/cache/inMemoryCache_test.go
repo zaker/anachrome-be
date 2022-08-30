@@ -24,13 +24,13 @@ func TestCache(t *testing.T) {
 	}
 	c, err := NewInMemoryCache(mbs)
 	if err != nil {
-		t.Errorf("Initializing cache failed: %w", err)
+		t.Errorf("Initializing cache failed: %v", err)
 	}
 
 	gotBlog, err := c.GetBlogPost(context.Background(), "1")
 
 	if err != nil {
-		t.Errorf("Failed fetching exisitng item: %w", err)
+		t.Errorf("Failed fetching exisitng item: %v", err)
 	}
 	callsToGBP := len(mbs.GetBlogPostCalls())
 
@@ -46,7 +46,7 @@ func TestCache(t *testing.T) {
 	gotBlog, err = c.GetBlogPost(context.Background(), "1")
 
 	if err != nil {
-		t.Errorf("Failed fetching exisitng item: %w", err)
+		t.Errorf("Failed fetching exisitng item: %v", err)
 	}
 	callsToGBP = len(mbs.GetBlogPostCalls())
 
@@ -58,7 +58,7 @@ func TestCache(t *testing.T) {
 	gotBlog, err = c.GetBlogPost(context.Background(), "1")
 
 	if err != nil {
-		t.Errorf("Failed fetching exisitng item: %w", err)
+		t.Errorf("Failed fetching exisitng item: %v", err)
 	}
 	callsToGBP = len(mbs.GetBlogPostCalls())
 
