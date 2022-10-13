@@ -9,7 +9,7 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 COPY . .
-RUN go build --race
+RUN go build --race -buildvcs=false
 RUN go test --race ./...
 RUN CGO_ENABLED=0\
     GOOS=linux\
