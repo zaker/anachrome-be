@@ -14,7 +14,10 @@ RUN go test --race ./...
 RUN CGO_ENABLED=0\
     GOOS=linux\
     GOARCH=amd64 \
-    go build -ldflags="-w -s"  -o /bin/a-be
+    go build \
+        -ldflags="-w -s" \
+        -o /bin/a-be \
+        -buildvcs=false
 
 FROM scratch as deployer
 COPY --from=builder /bin/a-be /bin/a-be
