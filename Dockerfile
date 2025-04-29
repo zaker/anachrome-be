@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 golang:1.24-alpine as builder
+FROM --platform=linux/amd64 golang:1.24-alpine AS builder
 RUN apk update && \
     apk upgrade &&\
     apk add --no-cache ca-certificates git gcc musl-dev
@@ -19,7 +19,7 @@ RUN CGO_ENABLED=0\
         -o /bin/a-be \
         -buildvcs=false
 
-FROM scratch as deployer
+FROM scratch AS deployer
 COPY --from=builder /bin/a-be /bin/a-be
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
