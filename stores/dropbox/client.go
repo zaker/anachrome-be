@@ -142,7 +142,7 @@ func (c *Client) ListMainFolder(ctx context.Context) (*FolderMetadata, error) {
 	return data, nil
 }
 
-func (c *Client) continueMainFolder(ctx context.Context, cursor string) (*FolderMetadata, error) {
+func (c *Client) continueMainFolder(ctx context.Context, cursor string) (fmd *FolderMetadata, err error) {
 
 	req, err := http.NewRequestWithContext(
 		ctx,
@@ -162,19 +162,22 @@ func (c *Client) continueMainFolder(ctx context.Context, cursor string) (*Folder
 	if err != nil {
 		return nil, fmt.Errorf("requesting folder metadata: %w", err)
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		err = resp.Body.Close()
+	}()
 	if resp.StatusCode != 200 {
 		code, err := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("requesting folder metadata: %s , %w", code, err)
 	}
 
 	decoder := json.NewDecoder(resp.Body)
-	data := &FolderMetadata{}
-	err = decoder.Decode(data)
+	fmd = &FolderMetadata{}
+	err = decoder.Decode(fmd)
 	if err != nil {
 		return nil, fmt.Errorf("decoding response: %w", err)
 	}
-	return data, nil
+	return fmd, nil
 }
 
 func (c *Client) SubscribeMainFolder(entriesChan chan<- EntryMetadata, done <-chan struct{}) error {
@@ -312,7 +315,9 @@ func (c *Client) GetFileContent(ctx context.Context, id string) ([]byte, *EntryM
 		code, err := io.ReadAll(resp.Body)
 		return nil, nil, fmt.Errorf("downloading file content: %s , %w", code, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = resp.Body.Close()
+	}()
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading file content: %w", err)
@@ -322,7 +327,7 @@ func (c *Client) GetFileContent(ctx context.Context, id string) ([]byte, *EntryM
 	if err != nil {
 		return nil, nil, fmt.Errorf("reading file content: %w", err)
 	}
-	return content, &meta, nil
+	return content, &meta, err
 }
 
 func (c *Client) GetID(entry EntryMetadata) string {
