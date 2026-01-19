@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"text/template"
 
 	"github.com/zaker/anachrome-be/stores/blog"
-
-	headerutil "github.com/golang/gddo/httputil/header"
 )
 
 type BlogPostMeta struct {
@@ -19,12 +18,7 @@ type BlogPostMeta struct {
 
 func WantsHTML(header http.Header) bool {
 
-	for _, v := range headerutil.ParseAccept(header, "Accept") {
-		if v.Value == "text/html" {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(header.Values("Accept"), "text/html")
 }
 
 func BlogsToHTML(blogs []BlogPostMeta) (string, error) {

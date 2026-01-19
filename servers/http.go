@@ -2,6 +2,7 @@ package servers
 
 import (
 	"fmt"
+	"log/slog"
 	"strconv"
 
 	"github.com/zaker/anachrome-be/stores/blog"
@@ -10,9 +11,9 @@ import (
 	"github.com/zaker/anachrome-be/middleware"
 	"github.com/zaker/anachrome-be/services"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 
-	ec_middleware "github.com/labstack/echo/v4/middleware"
+	ec_middleware "github.com/labstack/echo/v5/middleware"
 )
 
 type APIServer struct {
@@ -55,11 +56,11 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 	}
 	hs.app.Pre(ec_middleware.RemoveTrailingSlash())
 
-	hs.app.Use(ec_middleware.BodyLimit("2M"))
+	hs.app.Use(ec_middleware.BodyLimit(2_000_000))
 	if !hs.wc.devMode {
 
 		hs.app.Use(ec_middleware.CSRFWithConfig(ec_middleware.CSRFConfig{
-			Skipper: func(ctx echo.Context) bool {
+			Skipper: func(ctx *echo.Context) bool {
 
 				return ctx.Path() == "/gql"
 
@@ -77,7 +78,7 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 		Level: 5,
 	}))
 	hs.app.Use(ec_middleware.Recover())
-	hs.app.Use(ec_middleware.Logger())
+	hs.app.Logger = slog.Default()
 	hs.app.Use(middleware.MIME())
 	if !hs.wc.devMode {
 
@@ -94,7 +95,7 @@ func (as *APIServer) registerEndpoints() error {
 
 	blogCotroller := controllers.NewBlog(as.serv.blogStore, as.wc.HostName)
 	as.app.GET("/blog", blogCotroller.ListBlogPosts)
-	as.app.GET("/blog/:id", blogCotroller.GetBlogPost).Name = "BlogPost"
+	as.app.GET("/blog/:id", blogCotroller.GetBlogPost)
 
 	// GQL
 	if as.wc.enableGQL {

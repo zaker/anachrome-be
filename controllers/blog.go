@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/zaker/anachrome-be/services"
 	"github.com/zaker/anachrome-be/stores/blog"
 )
@@ -18,7 +18,7 @@ func NewBlog(blogs blog.BlogStore, basePath string) *Blog {
 	return &Blog{blogs, basePath}
 }
 
-func (b *Blog) ListBlogPosts(c echo.Context) error {
+func (b *Blog) ListBlogPosts(c *echo.Context) error {
 
 	blogPosts := make([]services.BlogPostMeta, 0)
 	bpm, err := b.blogs.GetBlogPostsMeta(context.TODO())
@@ -42,7 +42,7 @@ func (b *Blog) ListBlogPosts(c echo.Context) error {
 	return c.JSON(http.StatusOK, blogPosts)
 }
 
-func (b *Blog) GetBlogPost(c echo.Context) error {
+func (b *Blog) GetBlogPost(c *echo.Context) error {
 	id := c.Param("id")
 	if len(id) == 0 {
 		return c.JSON(http.StatusNotFound, id)
