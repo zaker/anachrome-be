@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -115,7 +116,7 @@ func (c *Client) createFolderMetadataRequest() (*http.Request, error) {
 	return req, nil
 }
 
-func (c *Client) ListMainFolder(ctx context.Context) (*FolderMetadata, error) {
+func (c *Client) ListMainFolder(ctx context.Context) (fm *FolderMetadata, err error) {
 
 	req, err := c.createFolderMetadataRequest()
 	if err != nil {
@@ -126,7 +127,11 @@ func (c *Client) ListMainFolder(ctx context.Context) (*FolderMetadata, error) {
 	if err != nil {
 		return nil, fmt.Errorf("requesting folder metadata: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		code, err := io.ReadAll(resp.Body)
