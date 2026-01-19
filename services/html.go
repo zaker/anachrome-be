@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
+	"strings"
 	"text/template"
 
 	"github.com/zaker/anachrome-be/stores/blog"
@@ -18,7 +18,15 @@ type BlogPostMeta struct {
 
 func WantsHTML(header http.Header) bool {
 
-	return slices.Contains(header.Values("Accept"), "text/html")
+	for _, v := range header.Values("Accept") {
+		headers := strings.Split(v, " ")
+		for _, h := range headers {
+			if h == "text/html" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func BlogsToHTML(blogs []BlogPostMeta) (string, error) {
