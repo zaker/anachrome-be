@@ -3,8 +3,8 @@ package services
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -20,10 +20,8 @@ func WantsHTML(header http.Header) bool {
 
 	for _, v := range header.Values("Accept") {
 		headers := strings.Split(v, " ")
-		for _, h := range headers {
-			if h == "text/html" {
-				return true
-			}
+		if slices.Contains(headers, "text/html") {
+			return true
 		}
 	}
 	return false
@@ -51,11 +49,8 @@ func BlogsToHTML(blogs []BlogPostMeta) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("executing html template: %w", err)
 	}
-	htmlBytes, err := io.ReadAll(sb)
-	if err != nil {
-		return "", fmt.Errorf("read html template: %w", err)
-	}
-	return string(htmlBytes), nil
+
+	return sb.String(), nil
 }
 
 func BlogToHTML(blogs blog.BlogPost) (string, error) {
@@ -82,9 +77,6 @@ func BlogToHTML(blogs blog.BlogPost) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("executing html template: %w", err)
 	}
-	htmlBytes, err := io.ReadAll(sb)
-	if err != nil {
-		return "", fmt.Errorf("read html template: %w", err)
-	}
-	return string(htmlBytes), nil
+
+	return sb.String(), nil
 }
