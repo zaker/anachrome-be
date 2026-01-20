@@ -1,9 +1,14 @@
 package servers
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/zaker/anachrome-be/stores/blog"
 
@@ -28,6 +33,7 @@ type Services struct {
 	blogStore blog.BlogStore
 }
 type WebConfig struct {
+	echo.StartConfig
 	HostName  string
 	HTTPPort  int
 	enableGQL bool
@@ -71,7 +77,11 @@ func NewHTTPServer(opts ...Option) (hs *APIServer, err error) {
 		}))
 	}
 
-	hs.app.Use(ec_middleware.CORS())
+	hs.app.Use(ec_middleware.CORSWithConfig(ec_middleware.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	}))
 
 	hs.app.Use(ec_middleware.Secure())
 	hs.app.Use(ec_middleware.GzipWithConfig(ec_middleware.GzipConfig{
@@ -118,9 +128,17 @@ func (as *APIServer) Serve() error {
 		return err
 	}
 	wc := as.wc
-	fmt.Println("webconf", wc)
 
-	return as.app.Start(":" + strconv.Itoa(wc.HTTPPort))
+	wc.StartConfig = echo.StartConfig{
+		Address:         ":" + strconv.Itoa(wc.HTTPPort),
+		GracefulTimeout: 1 * time.Second,
+		HideBanner:      true,
+	}
+	as.app.Logger.Log(context.Background(), slog.LevelInfo, "webConfig", slog.Any("wc", wc))
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM) // start shutdown process on ctrl+c
+	defer cancel()
+	return wc.Start(ctx, as.app)
 
 }
 

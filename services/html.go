@@ -19,7 +19,8 @@ type BlogPostMeta struct {
 func WantsHTML(header http.Header) bool {
 
 	for _, v := range header.Values("Accept") {
-		headers := strings.Split(v, " ")
+		tmp := strings.ReplaceAll(v, ",", " ")
+		headers := strings.Split(tmp, " ")
 		if slices.Contains(headers, "text/html") {
 			return true
 		}

@@ -166,11 +166,6 @@ func (dbx *DropboxBlog) GetBlogPost(ctx context.Context, id string) (BlogPost, e
 
 	}
 
-	fmt.Println(filemeta)
-
-	if err != nil {
-		return blogPost, err
-	}
 	blogPost.Meta.ID = dbx.client.GetID(*filemeta)
 
 	meta, contentStart, err := readAnachromeMetaFromContent(content)

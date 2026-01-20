@@ -17,6 +17,7 @@ func TestWantsHTML(t *testing.T) {
 	}{
 		{"No header", http.Header{}, false},
 		{"Accepted", http.Header{"Accept": []string{"text/html application/octet-stream"}}, true},
+		{"Chrome wants html", http.Header{"Accept": []string{"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}}, true},
 		{"Doubly Accepted", http.Header{"Accept": []string{"application/octet-stream", "text/html"}}, true},
 	}
 	for _, tt := range tests {
