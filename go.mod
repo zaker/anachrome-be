@@ -9,7 +9,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/graphql-go/graphql v0.8.1
 	github.com/graphql-go/handler v0.2.4
-	github.com/labstack/echo/v5 v5.0.0
+	github.com/labstack/echo/v5 v5.0.3
 	github.com/labstack/gommon v0.4.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
