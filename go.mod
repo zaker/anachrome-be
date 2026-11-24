@@ -1,8 +1,8 @@
 module github.com/zaker/anachrome-be
 
-go 1.25.0
+go 1.27.4
 
-toolchain go1.25.6
+toolchain go1.27.4
 
 require (
 	github.com/go-redis/cache/v8 v8.4.4
